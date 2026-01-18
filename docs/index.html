@@ -3,46 +3,395 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MyWallet</title>
+    <title>MyWallet - Smart Digital Wallet</title>
+    <meta name="description" content="Manage your .pkpass files and loyalty cards with ease. Open source and secure.">
     <style>
-        body {
-            font-family: Arial, sans-serif;
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --secondary: #64748b;
+            --bg-color: #f8fafc;
+            --text-main: #1e293b;
+            --surface: #ffffff;
+            --accent-gradient: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
+        }
+
+        * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Navigation */
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-link {
+            text-decoration: none;
+            color: var(--secondary);
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-link:hover {
+            color: var(--primary);
+        }
+
+        /* Hero Section */
+        .hero {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 4rem 2rem;
+            align-items: center;
+            min-height: 80vh;
+        }
+
+        .hero-content {
+            max-width: 600px;
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            line-height: 1.1;
+            font-weight: 800;
+            margin-bottom: 1.5rem;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.02em;
+        }
+
+        p.subtitle {
+            font-size: 1.25rem;
+            color: var(--secondary);
+            margin-bottom: 2.5rem;
+            max-width: 480px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem 2rem;
+            background: var(--primary);
+            color: white;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2), 0 2px 4px -1px rgba(37, 99, 235, 0.1);
+        }
+
+        .btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3), 0 4px 6px -2px rgba(37, 99, 235, 0.15);
+        }
+
+        .btn svg {
+            margin-right: 0.75rem;
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
+
+        /* Phone Mockup & Carousel */
+        .hero-visual {
+            position: relative;
             display: flex;
             justify-content: center;
+        }
+
+        .phone-mockup {
+            width: 300px;
+            height: 650px;
+            background: #111;
+            border-radius: 40px;
+            border: 8px solid #1e293b;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            transform: rotate(-5deg);
+            transition: transform 0.5s ease;
+        }
+        
+        .phone-mockup:hover {
+            transform: rotate(0deg) scale(1.02);
+        }
+
+        .notch {
+            position: absolute;
+            top: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 25px;
+            height: 25px;
+            background: #1e293b;
+            border-radius: 12px;
+            z-index: 20;
+        }
+
+        .carousel-track {
+            display: flex;
+            height: 100%;
+            width: 100%;
+            overflow-x: scroll;
+            scroll-snap-type: x mandatory;
+            scrollbar-width: none; /* Firefox */
+        }
+        
+        .carousel-track::-webkit-scrollbar {
+            display: none; /* Chrome/Safari */
+        }
+
+        .carousel-track img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            flex-shrink: 0;
+            scroll-snap-align: center;
+        }
+        
+        /* Carousel Controls */
+        .carousel-nav {
+            position: absolute;
+            bottom: -3rem;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 1rem;
+            z-index: 10;
+        }
+        
+        .nav-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #cbd5e1;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .nav-dot.active {
+            background: var(--primary);
+        }
+
+        /* Features */
+        .features {
+            padding: 5rem 2rem;
+            background: var(--surface);
+        }
+
+        .features-grid {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 3rem;
+        }
+
+        .feature-card {
+            padding: 2rem;
+            border-radius: 1rem;
+            background: var(--bg-color);
+            transition: transform 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            background: rgba(37, 99, 235, 0.1);
+            color: var(--primary);
+            border-radius: 12px;
+            display: flex;
             align-items: center;
-            height: 100vh;
-            background-color: #f4f4f9;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
         }
-        .container {
+
+        .feature-card h3 {
+            font-size: 1.25rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .feature-card p {
+            color: var(--secondary);
+            font-size: 0.95rem;
+        }
+
+        footer {
             text-align: center;
+            padding: 3rem;
+            color: var(--secondary);
+            font-size: 0.9rem;
         }
-        h1 {
-            color: #333;
-        }
-        p {
-            color: #555;
-        }
-        a {
-            display: inline-block;
-            margin-top: 20px;
-            padding: 10px 20px;
-            background-color: #007bff;
-            color: #fff;
+
+        footer a {
+            color: var(--primary);
             text-decoration: none;
-            border-radius: 5px;
         }
-        a:hover {
-            background-color: #0056b3;
+
+        /* Mobile Responsive */
+        @media (max-width: 900px) {
+            .hero {
+                grid-template-columns: 1fr;
+                text-align: center;
+                gap: 3rem;
+                padding-top: 2rem;
+            }
+
+            .hero-content {
+                margin: 0 auto;
+            }
+            
+            p.subtitle {
+                margin-left: auto;
+                margin-right: auto;
+            }
+            
+            h1 {
+                font-size: 2.5rem;
+            }
+            
+            .phone-mockup {
+                width: 260px;
+                height: 520px;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Welcome to MyWallet</h1>
-        <p>Manage your wallet with ease.</p>
-        <a href="https://github.com/alexup71rus/MyWallet/releases" target="_blank">Download Latest Release</a>
-    </div>
+
+    <nav>
+        <a href="#" class="logo">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z"/></svg>
+            MyWallet
+        </a>
+        <a href="https://github.com/alexup71rus/MyWallet" class="nav-link">GitHub Repository</a>
+    </nav>
+
+    <section class="hero">
+        <div class="hero-content">
+            <h1>All your passes in one place.</h1>
+            <p class="subtitle">Import <code>.pkpass</code> files, track balances, and organize your digital life. Simple, secure, and open source.</p>
+            <a href="https://github.com/alexup71rus/MyWallet/releases" class="btn">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.164 6.839 9.49.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.564 9.564 0 0 1 12 6.844c.85.004 1.705.115 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0 0 22 12c0-5.523-4.477-10-10-10z"/></path></svg>
+                Download Latest Release
+            </a>
+        </div>
+        
+        <div class="hero-visual">
+            <div class="phone-mockup">
+                <div class="notch"></div>
+                <!-- Carousel Images -->
+                <div class="carousel-track" id="carousel">
+                    <img src="screenshots/5431515745784368157_121.jpg" alt="App Screenshot 1">
+                    <img src="screenshots/5431515745784368158_121.jpg" alt="App Screenshot 2">
+                    <img src="screenshots/5431515745784368159_121.jpg" alt="App Screenshot 3">
+                    <img src="screenshots/5431515745784368160_121.jpg" alt="App Screenshot 4">
+                </div>
+            </div>
+            <div class="carousel-nav" id="carouselNav">
+                <!-- Dots will be generated by JS -->
+            </div>
+        </div>
+    </section>
+
+    <section class="features">
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🎫</div>
+                <h3>Import Anything</h3>
+                <p>Easily import Apple Wallet (.pkpass) files. Airline tickets, movie passes, loyalty cards - keep them all organized.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">💰</div>
+                <h3>Track Balances</h3>
+                <p>Keep track of your loyalty card points and gift card balances directly within the app.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🔒</div>
+                <h3>Secure & Private</h3>
+                <p>Your data stays on your device. MyWallet is open source and respects your privacy.</p>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <p>Created by <a href="https://github.com/alexup71rus">alexup71rus</a> &copy; 2026</p>
+    </footer>
+
+    <script>
+        // Simple Carousel Logic
+        const track = document.getElementById('carousel');
+        const nav = document.getElementById('carouselNav');
+        const images = track.querySelectorAll('img');
+        
+        // Create navigation dots
+        images.forEach((_, index) => {
+            const dot = document.createElement('div');
+            dot.classList.add('nav-dot');
+            if (index === 0) dot.classList.add('active');
+            dot.addEventListener('click', () => {
+                track.scrollTo({
+                    left: track.clientWidth * index,
+                    behavior: 'smooth'
+                });
+            });
+            nav.appendChild(dot);
+        });
+
+        // Update active dot on scroll
+        track.addEventListener('scroll', () => {
+            const index = Math.round(track.scrollLeft / track.clientWidth);
+            const dots = nav.querySelectorAll('.nav-dot');
+            dots.forEach((dot, i) => {
+                if (i === index) dot.classList.add('active');
+                else dot.classList.remove('active');
+            });
+        });
+
+        // Auto scroll every 5 seconds
+        setInterval(() => {
+            const currentIndex = Math.round(track.scrollLeft / track.clientWidth);
+            const nextIndex = (currentIndex + 1) % images.length;
+            track.scrollTo({
+                left: track.clientWidth * nextIndex,
+                behavior: 'smooth'
+            });
+        }, 5000);
+    </script>
 </body>
 </html>

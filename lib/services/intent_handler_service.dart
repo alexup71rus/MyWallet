@@ -1,8 +1,9 @@
 import 'package:flutter/services.dart';
-import 'dart:io';
 
 class IntentHandlerService {
-  static const MethodChannel _channel = MethodChannel('com.example.mywallet/intent');
+  static const MethodChannel _channel = MethodChannel(
+    'com.example.mywallet/intent',
+  );
 
   /// Get the initial intent data when app is opened via share/open with
   static Future<String?> getInitialIntentData() async {

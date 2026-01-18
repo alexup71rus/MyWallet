@@ -48,8 +48,12 @@ These files contain your Firebase API keys and are already listed in `.gitignore
 ## Screenshots
 
 <p align="center">
-  <img src="screenshots/5431515745784368157_121.jpg" width="200" />
-  <img src="screenshots/5431515745784368158_121.jpg" width="200" />
-  <img src="screenshots/5431515745784368159_121.jpg" width="200" />
-  <img src="screenshots/5431515745784368160_121.jpg" width="200" />
+  <img src="screenshots/5431515745784368157_121.jpg" alt="Screenshot 1" width="300">
+  <img src="screenshots/5431515745784368158_121.jpg" alt="Screenshot 2" width="300">
+  <img src="screenshots/5431515745784368159_121.jpg" alt="Screenshot 3" width="300">
+  <img src="screenshots/5431515745784368160_121.jpg" alt="Screenshot 4" width="300">
 </p>
+
+## GitHub Pages
+
+Check out the [landing page](https://alexup71rus.github.io/MyWallet/) for more details.

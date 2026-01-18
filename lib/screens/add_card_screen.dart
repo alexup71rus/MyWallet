@@ -210,7 +210,7 @@ class _AddCardScreenState extends State<AddCardScreen> {
               const SizedBox(height: 16),
 
               DropdownButtonFormField<String>(
-                value: _selectedCardType,
+                initialValue: _selectedCardType,
                 decoration: InputDecoration(
                   labelText: 'Card Type',
                   prefixIcon: const Icon(Icons.label),
