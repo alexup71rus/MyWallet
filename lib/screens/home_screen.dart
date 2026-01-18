@@ -1,9 +1,12 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:app_links/app_links.dart';
 import '../models/wallet_card.dart';
 import '../services/storage_service.dart';
+import '../services/intent_handler_service.dart';
+import '../services/pkpass_service.dart';
 import '../widgets/card_list_item.dart';
 import 'add_card_screen.dart';
 import 'card_detail_screen.dart';
@@ -28,6 +31,7 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _loadCards();
     _initDeepLinks();
+    _initIntentHandler();
   }
 
   @override
@@ -93,6 +97,55 @@ class _HomeScreenState extends State<HomeScreen> {
             }
           });
         }
+      }
+    }
+  }
+
+  Future<void> _initIntentHandler() async {
+    // Handle initial intent (app opened via share/open with)
+    if (Platform.isAndroid || Platform.isIOS) {
+      final String? filePath = await IntentHandlerService.getInitialIntentData();
+      if (filePath != null) {
+        _handleSharedFile(filePath);
+      }
+
+      // Listen for new intents while app is running
+      IntentHandlerService.listenForIntents((filePath) {
+        _handleSharedFile(filePath);
+      });
+    }
+  }
+
+  Future<void> _handleSharedFile(String filePath) async {
+    try {
+      final file = File(filePath);
+      if (!await file.exists()) return;
+
+      final bytes = await file.readAsBytes();
+      final pkpassService = PkpassService();
+      final card = await pkpassService.parsePkpass(bytes);
+
+      if (mounted) {
+        final result = await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => AddCardScreen(initialCard: card),
+          ),
+        );
+        if (result != null && result is WalletCard) {
+          _addCard(result);
+        }
+      }
+
+      // Clean up temp file
+      try {
+        await file.delete();
+      } catch (_) {}
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to import card: $e')),
+        );
       }
     }
   }

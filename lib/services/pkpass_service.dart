@@ -18,6 +18,10 @@ class PkpassService {
     }
   }
 
+  Future<WalletCard?> parsePkpass(Uint8List bytes) async {
+    return _parseBytes(bytes);
+  }
+
   static WalletCard? _parseBytes(Uint8List bytes) {
     try {
       final archive = ZipDecoder().decodeBytes(bytes);
