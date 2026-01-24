@@ -1,0 +1,143 @@
+{
+  "@@locale": "en",
+  "appTitle": "My Wallet",
+  "homeWalletEmptyTitle": "Your wallet is empty",
+  "homeWalletEmptySubtitle": "Add your first loyalty card",
+  "homeAddCard": "Add Card",
+  "homeFailedImport": "Failed to import card: {error}",
+  "settingsTitle": "Settings",
+  "settingsGoogleDriveSection": "Google Drive Backup",
+  "settingsLocalBackupSection": "Local Backup",
+  "settingsAboutSection": "About",
+  "settingsNotSignedIn": "Not Signed In",
+  "settingsSignIn": "Sign In",
+  "settingsBackupToDrive": "Backup to Drive",
+  "settingsRestoreFromDrive": "Restore from Drive",
+  "settingsExportToFile": "Export to File",
+  "settingsImportFromFile": "Import from File",
+  "settingsImportPkpass": "Import .pkpass Card",
+  "settingsMaxBrightnessTitle": "Max Brightness on Card",
+  "settingsMaxBrightnessSubtitle": "Increase screen brightness when viewing QR codes",
+  "settingsNearbySortingTitle": "Nearby Pass Sorting",
+  "settingsNearbySortingSubtitle": "Sort passes by distance using your location",
+  "settingsVersion": "Version",
+  "settingsLanguageSection": "Language",
+  "settingsLanguageTitle": "App Language",
+  "settingsLanguageChoose": "Choose Language",
+  "settingsLanguageSave": "Continue",
+  "settingsLanguageCancel": "Cancel",
+  "snackbarEnableLocationServices": "Enable location services to use nearby sorting.",
+  "snackbarLocationDenied": "Location permission denied.",
+  "snackbarLocationBlocked": "Location permission blocked. Enable it in Settings.",
+  "snackbarSignInFailed": "Sign in failed: {error}",
+  "snackbarBackupUploaded": "Backup uploaded successfully!",
+  "snackbarBackupFailed": "Backup failed: {error}",
+  "snackbarNoBackupFound": "No backup found.",
+  "snackbarRestoreSuccessful": "Restore successful!",
+  "snackbarInvalidBackupFormat": "Invalid backup format.",
+  "snackbarRestoreFailed": "Restore failed: {error}",
+  "snackbarExportFailed": "Export failed: {error}",
+  "snackbarImportSuccessful": "Import successful!",
+  "snackbarInvalidFileFormat": "Invalid file format.",
+  "snackbarDecodeFailed": "Failed to decode JSON: {message}",
+  "snackbarImportFailed": "Import failed: {error}",
+  "snackbarPkpassParseFailed": "Failed to parse .pkpass file.",
+  "snackbarPkpassImported": "Card imported from .pkpass",
+  "snackbarPkpassImportFailed": "PKPASS import failed: {error}",
+  "backupShareText": "MyWallet Backup",
+  "addCardTitle": "Add New Card",
+  "addCardStorePlaceholder": "Store Name",
+  "addCardCodePlaceholder": "0000 0000 0000",
+  "addCardServiceNameLabel": "Service Name",
+  "addCardServiceNameHint": "e.g. Starbucks, Tesco",
+  "addCardNameValidation": "Please enter a name",
+  "addCardTypeLabel": "Card Type",
+  "cardTypeLoyalty": "Loyalty Card",
+  "cardTypeGift": "Gift Card",
+  "cardTypeMembership": "Membership Card",
+  "cardTypeDiscount": "Discount Card",
+  "cardTypeClub": "Club Card",
+  "addCardCodeLabel": "Card Code",
+  "addCardCodeHint": "Scan or enter code",
+  "addCardCodeValidation": "Please enter a code",
+  "addCardIconLabel": "Card Icon",
+  "addCardColorLabel": "Card Color",
+  "addCardSave": "Save Card",
+  "addCardLinkNotPass": "Link did not return a valid pass file. Using as code.",
+  "addCardFailedFetch": "Failed to fetch link: {status}",
+  "addCardDownloadError": "Error downloading: {error}",
+  "scannerTitle": "Scan QR Code",
+  "cardUpdated": "Card updated successfully",
+  "cardUpdateFailed": "No updates available or update failed",
+  "cardDeleteTitle": "Delete Card",
+  "cardDeleteConfirm": "Are you sure you want to remove this card?",
+  "cardDeleteCancel": "Cancel",
+  "cardDeleteAction": "Delete",
+  "cardShowCodeHint": "Show this code at checkout\nPull down to refresh balance",
+  "barcodeError": "Error generating barcode: {error}",
+  "qrCodeLabel": "QR code",
+  "pointsLabelDefault": "Points",
+  "languageEnglish": "English",
+  "languageChineseSimplified": "Simplified Chinese",
+  "languageJapanese": "Japanese",
+  "languageRussian": "Russian",
+  "languageArabic": "Arabic",
+  "@homeFailedImport": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "@snackbarSignInFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "@snackbarBackupFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "@snackbarRestoreFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "@snackbarExportFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "@snackbarDecodeFailed": {
+    "placeholders": {
+      "message": {}
+    }
+  },
+  "@snackbarImportFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "@snackbarPkpassImportFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "@addCardFailedFetch": {
+    "placeholders": {
+      "status": {}
+    }
+  },
+  "@addCardDownloadError": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "@cardShowCodeHint": {
+    "description": "Instruction shown under the card"
+  },
+  "@barcodeError": {
+    "placeholders": {
+      "error": {}
+    }
+  }
+}

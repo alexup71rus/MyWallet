@@ -3,6 +3,7 @@ import 'dart:math';
 import 'dart:typed_data';
 import 'dart:io';
 import 'package:archive/archive.dart';
+import 'package:path_provider/path_provider.dart';
 import '../models/wallet_card.dart';
 
 class PkpassService {
@@ -22,7 +23,7 @@ class PkpassService {
     return _parseBytes(bytes);
   }
 
-  static WalletCard? _parseBytes(Uint8List bytes) {
+  static Future<WalletCard?> _parseBytes(Uint8List bytes) async {
     try {
       final archive = ZipDecoder().decodeBytes(bytes);
       final passEntry = archive.files.firstWhere(
@@ -40,11 +41,30 @@ class PkpassService {
       final cardType = _extractCardType(data);
       final colorValue =
           _extractColor(data) ?? const ColorDefaults().defaultColor;
+      final foregroundColor = _parseColorString(
+        data['foregroundColor']?.toString() ?? '',
+      );
+
       final points = _extractPoints(data);
+      final locations = _extractLocations(data);
 
       final id =
           (data['serialNumber'] ?? data['authenticationToken'])?.toString() ??
           '${DateTime.now().millisecondsSinceEpoch}${Random().nextInt(1000)}';
+
+      String? iconPath;
+      try {
+        final iconFile = _findIconFile(archive);
+        if (iconFile != null) {
+          final directory = await getApplicationDocumentsDirectory();
+          final fileName = '${id}_icon.png';
+          final file = File('${directory.path}/$fileName');
+          await file.writeAsBytes(iconFile.content as List<int>);
+          iconPath = file.path;
+        }
+      } catch (e) {
+        print('Error extracting icon: $e');
+      }
 
       return WalletCard(
         id: id,
@@ -59,10 +79,30 @@ class PkpassService {
         webServiceURL: data['webServiceURL']?.toString(),
         authenticationToken: data['authenticationToken']?.toString(),
         passTypeIdentifier: data['passTypeIdentifier']?.toString(),
+        format: barcodeData?.format ?? 'qrCode',
+        iconPath: iconPath,
+        foregroundColor: foregroundColor,
+        locations: locations,
       );
     } catch (_) {
       return null;
     }
+  }
+
+  static ArchiveFile? _findIconFile(Archive archive) {
+    // Prefer higher resolution icons
+    final priorities = ['icon@3x.png', 'icon@2x.png', 'icon.png'];
+
+    for (final name in priorities) {
+      try {
+        return archive.files.firstWhere(
+          (f) => f.name.toLowerCase() == name.toLowerCase(),
+        );
+      } catch (_) {
+        continue;
+      }
+    }
+    return null;
   }
 
   /// Attempts to update the card from the web service.
@@ -110,14 +150,11 @@ class PkpassService {
       return BarcodeData(
         message: barcode['message'].toString(),
         altText: barcode['altText']?.toString(),
+        format: _mapPkBarcodeFormat(barcode['format']?.toString()),
       );
     }
-    if (barcode is Map && barcode['altText'] != null) {
-      return BarcodeData(
-        message: barcode['altText'].toString(),
-        altText: barcode['altText']?.toString(),
-      );
-    }
+    // Apple sometimes puts barcode in top level if it's legacy, but usually inside 'barcode' or 'barcodes'
+    // Actually standard is 'barcode' (dict) or 'barcodes' (array of dicts)
 
     final barcodes = data['barcodes'];
     if (barcodes is List && barcodes.isNotEmpty) {
@@ -126,17 +163,27 @@ class PkpassService {
         return BarcodeData(
           message: first['message'].toString(),
           altText: first['altText']?.toString(),
-        );
-      }
-      if (first is Map && first['altText'] != null) {
-        return BarcodeData(
-          message: first['altText'].toString(),
-          altText: first['altText']?.toString(),
+          format: _mapPkBarcodeFormat(first['format']?.toString()),
         );
       }
     }
 
     return null;
+  }
+
+  static String _mapPkBarcodeFormat(String? pkFormat) {
+    switch (pkFormat) {
+      case 'PKBarcodeFormatQR':
+        return 'qrCode';
+      case 'PKBarcodeFormatPDF417':
+        return 'pdf417';
+      case 'PKBarcodeFormatAztec':
+        return 'aztec';
+      case 'PKBarcodeFormatCode128':
+        return 'code128';
+      default:
+        return 'qrCode';
+    }
   }
 
   static String _extractName(Map<String, dynamic> data) {
@@ -159,13 +206,23 @@ class PkpassService {
   }
 
   static int? _extractColor(Map<String, dynamic> data) {
+    // 1. Try background color first
     final background = _parseColorString(
       data['backgroundColor']?.toString() ?? '',
     );
-    if (background != null && !_isNearWhite(background)) {
-      return background;
+
+    // If we have a valid background color
+    if (background != null) {
+      // If it's NOT white, use it
+      if (!_isNearWhite(background)) {
+        return background;
+      }
+      // If it IS white, return a "noble white" (light greyish) instead of pure white
+      // or falling back to foreground immediately.
+      return 0xFFF5F5F5; // Colors.grey[100]
     }
 
+    // 2. Fallback to foreground if background was missing/invalid
     final foreground = _parseColorString(
       data['foregroundColor']?.toString() ?? '',
     );
@@ -203,39 +260,67 @@ class PkpassService {
   }
 
   static PointsData? _extractPoints(Map<String, dynamic> data) {
-    final storeCard = data['storeCard'];
-    if (storeCard is! Map) return null;
+    final cardData =
+        data['storeCard'] ??
+        data['coupon'] ??
+        data['generic'] ??
+        data['eventTicket'] ??
+        data['boardingPass'];
 
-    final headerFields = storeCard['headerFields'];
+    if (cardData is! Map) return null;
+
+    final headerFields = cardData['headerFields'];
     if (headerFields is! List || headerFields.isEmpty) return null;
 
-    Map<dynamic, dynamic>? candidate;
     for (final field in headerFields) {
-      if (field is Map) {
-        final key = field['key']?.toString().toLowerCase() ?? '';
-        final label = field['label']?.toString().toLowerCase() ?? '';
-        if (key.contains('points') ||
-            key.contains('balance') ||
-            label.contains('баланс')) {
-          candidate = field.cast<dynamic, dynamic>();
-          break;
+      if (field is! Map) continue;
+
+      final key = field['key']?.toString().toLowerCase() ?? '';
+      final label = field['label']?.toString().toLowerCase() ?? '';
+
+      if (key == 'clientpoints' ||
+          key.contains('balance') ||
+          key.contains('points') ||
+          key.contains('bonus') ||
+          label.contains('баланс') ||
+          label.contains('balance')) {
+        String displayLabel = field['label']?.toString() ?? 'Points';
+        if (displayLabel.toLowerCase().contains('баланс')) {
+          displayLabel = 'Balance';
         }
-        candidate ??= field.cast<dynamic, dynamic>();
+
+        final value = field['value']?.toString();
+        if (value == null || value.isEmpty) continue;
+
+        return PointsData(label: displayLabel, value: value);
       }
     }
 
-    if (candidate == null) return null;
-    String label = candidate['label']?.toString() ?? 'Points';
+    return null;
+  }
 
-    // Force "Balance" if it is Russian "Баланс" or just generally "Balance" requested
-    if (label.toLowerCase().contains('баланс')) {
-      label = 'Balance';
+  static List<PassLocation> _extractLocations(Map<String, dynamic> data) {
+    final rawLocations = data['locations'];
+    if (rawLocations is! List) return const [];
+
+    final locations = <PassLocation>[];
+    for (final entry in rawLocations) {
+      if (entry is Map) {
+        final lat = _toDouble(entry['latitude']);
+        final lon = _toDouble(entry['longitude']);
+        if (lat != null && lon != null) {
+          locations.add(
+            PassLocation(
+              latitude: lat,
+              longitude: lon,
+              relevantText: entry['relevantText']?.toString(),
+            ),
+          );
+        }
+      }
     }
 
-    final value = candidate['value']?.toString();
-    if (value == null || value.isEmpty) return null;
-
-    return PointsData(label: label, value: value);
+    return locations;
   }
 
   static bool _isNearWhite(int argb) {
@@ -243,6 +328,12 @@ class PkpassService {
     final g = (argb >> 8) & 0xFF;
     final b = argb & 0xFF;
     return r > 240 && g > 240 && b > 240;
+  }
+
+  static double? _toDouble(dynamic value) {
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
   }
 }
 
@@ -262,6 +353,11 @@ class PointsData {
 class BarcodeData {
   final String message;
   final String? altText;
+  final String format;
 
-  const BarcodeData({required this.message, this.altText});
+  const BarcodeData({
+    required this.message,
+    this.altText,
+    this.format = 'qrCode',
+  });
 }

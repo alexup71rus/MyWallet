@@ -3,11 +3,17 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:app_links/app_links.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:mywallet/l10n/app_localizations.dart';
 import '../models/wallet_card.dart';
 import '../services/storage_service.dart';
 import '../services/intent_handler_service.dart';
 import '../services/pkpass_service.dart';
+import '../services/notification_service.dart';
+import '../services/locale_service.dart';
 import '../widgets/card_list_item.dart';
+import '../widgets/language_picker.dart';
 import 'add_card_screen.dart';
 import 'card_detail_screen.dart';
 import 'settings_screen.dart';
@@ -21,10 +27,13 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final StorageService _storageService = StorageService();
+  final NotificationService _notificationService = NotificationService.instance;
   late AppLinks _appLinks;
   StreamSubscription<Uri>? _linkSubscription;
   List<WalletCard> _cards = [];
   bool _isLoading = true;
+  static const double _nearbyThresholdMeters = 500;
+  static const Duration _notificationCooldown = Duration(hours: 6);
 
   @override
   void initState() {
@@ -32,6 +41,9 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadCards();
     _initDeepLinks();
     _initIntentHandler();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _promptLanguageSelectionIfNeeded();
+    });
   }
 
   @override
@@ -104,7 +116,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _initIntentHandler() async {
     // Handle initial intent (app opened via share/open with)
     if (Platform.isAndroid || Platform.isIOS) {
-      final String? filePath = await IntentHandlerService.getInitialIntentData();
+      final String? filePath =
+          await IntentHandlerService.getInitialIntentData();
       if (filePath != null) {
         _handleSharedFile(filePath);
       }
@@ -143,10 +156,20 @@ class _HomeScreenState extends State<HomeScreen> {
       } catch (_) {}
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to import card: $e')),
+          SnackBar(content: Text(l10n.homeFailedImport(e.toString()))),
         );
       }
+    }
+  }
+
+  Future<void> _promptLanguageSelectionIfNeeded() async {
+    final isSet = await LocaleService.isLocaleSet();
+    if (isSet || !mounted) return;
+    final selected = await showLanguagePicker(context, forceSelection: true);
+    if (selected != null && mounted) {
+      await LocaleService.setLocale(selected);
     }
   }
 
@@ -154,10 +177,96 @@ class _HomeScreenState extends State<HomeScreen> {
     final cards = await _storageService.loadCards();
     // Sort by Date Added descending
     cards.sort((a, b) => b.dateAdded.compareTo(a.dateAdded));
+    final sortedCards = await _sortCardsByProximity(cards);
+    if (!mounted) return;
     setState(() {
-      _cards = cards;
+      _cards = sortedCards;
       _isLoading = false;
     });
+  }
+
+  Future<List<WalletCard>> _sortCardsByProximity(List<WalletCard> cards) async {
+    final prefs = await SharedPreferences.getInstance();
+    final isEnabled = prefs.getBool('proximity_sorting_enabled') ?? false;
+    if (!isEnabled) return cards;
+    if (!cards.any((card) => card.locations.isNotEmpty)) return cards;
+
+    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) return cards;
+
+    var permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
+      return cards;
+    }
+
+    final position = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.low,
+    );
+
+    final nearby = <_CardDistance>[];
+    final others = <WalletCard>[];
+
+    for (final card in cards) {
+      final distance = _minDistanceToCard(position, card);
+      if (distance != null && distance <= _nearbyThresholdMeters) {
+        nearby.add(_CardDistance(card: card, distanceMeters: distance));
+      } else {
+        others.add(card);
+      }
+    }
+
+    nearby.sort((a, b) => a.distanceMeters.compareTo(b.distanceMeters));
+
+    await _maybeNotifyNearbyCard(nearby);
+
+    return [...nearby.map((e) => e.card), ...others];
+  }
+
+  Future<void> _maybeNotifyNearbyCard(List<_CardDistance> nearby) async {
+    if (nearby.isEmpty) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    final nearest = nearby.first;
+    final lastKey = 'last_notified_${nearest.card.id}';
+    final lastMillis = prefs.getInt(lastKey);
+    final now = DateTime.now().millisecondsSinceEpoch;
+
+    if (lastMillis != null) {
+      final elapsed = Duration(milliseconds: now - lastMillis);
+      if (elapsed < _notificationCooldown) return;
+    }
+
+    await _notificationService.ensureInitialized();
+    await _notificationService.requestPermissionsIfNeeded();
+    await _notificationService.showNearbyCardNotification(
+      nearest.card,
+      nearest.distanceMeters,
+    );
+
+    await prefs.setInt(lastKey, now);
+  }
+
+  double? _minDistanceToCard(Position position, WalletCard card) {
+    if (card.locations.isEmpty) return null;
+
+    double? minDistance;
+    for (final location in card.locations) {
+      final distance = Geolocator.distanceBetween(
+        position.latitude,
+        position.longitude,
+        location.latitude,
+        location.longitude,
+      );
+      if (minDistance == null || distance < minDistance) {
+        minDistance = distance;
+      }
+    }
+
+    return minDistance;
   }
 
   Future<void> _addCard(WalletCard card) async {
@@ -191,12 +300,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       body: CustomScrollView(
         slivers: [
           SliverAppBar.large(
             title: Text(
-              'My Wallet',
+              l10n.appTitle,
               style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
             ),
             actions: [
@@ -231,7 +341,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'Your wallet is empty',
+                      l10n.homeWalletEmptyTitle,
                       style: GoogleFonts.poppins(
                         fontSize: 20,
                         fontWeight: FontWeight.w600,
@@ -240,7 +350,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Add your first loyalty card',
+                      l10n.homeWalletEmptySubtitle,
                       style: TextStyle(color: Colors.grey[400]),
                     ),
                   ],
@@ -283,12 +393,19 @@ class _HomeScreenState extends State<HomeScreen> {
             _addCard(result);
           }
         },
-        label: const Text(
-          'Add Card',
-          style: TextStyle(fontWeight: FontWeight.bold),
+        label: Text(
+          l10n.homeAddCard,
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         icon: const Icon(Icons.add_card),
       ),
     );
   }
+}
+
+class _CardDistance {
+  final WalletCard card;
+  final double distanceMeters;
+
+  const _CardDistance({required this.card, required this.distanceMeters});
 }

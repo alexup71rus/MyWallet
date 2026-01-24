@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:mywallet/l10n/app_localizations.dart';
 
 class ScannerScreen extends StatefulWidget {
   const ScannerScreen({super.key});
@@ -13,9 +14,10 @@ class _ScannerScreenState extends State<ScannerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Scan QR Code'),
+        title: Text(l10n.scannerTitle),
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () => Navigator.pop(context),
@@ -30,7 +32,10 @@ class _ScannerScreenState extends State<ScannerScreen> {
               for (final barcode in barcodes) {
                 if (barcode.rawValue != null) {
                   controller.stop();
-                  Navigator.pop(context, barcode.rawValue);
+                  Navigator.pop(context, {
+                    'code': barcode.rawValue,
+                    'format': _mapFormat(barcode.format),
+                  });
                   break;
                 }
               }
@@ -70,5 +75,36 @@ class _ScannerScreenState extends State<ScannerScreen> {
   void dispose() {
     controller.dispose();
     super.dispose();
+  }
+
+  String _mapFormat(BarcodeFormat format) {
+    switch (format) {
+      case BarcodeFormat.qrCode:
+        return 'qrCode';
+      case BarcodeFormat.pdf417:
+        return 'pdf417';
+      case BarcodeFormat.aztec:
+        return 'aztec';
+      case BarcodeFormat.code128:
+        return 'code128';
+      case BarcodeFormat.code39:
+        return 'code39';
+      case BarcodeFormat.code93:
+        return 'code93';
+      case BarcodeFormat.ean13:
+        return 'ean13';
+      case BarcodeFormat.ean8:
+        return 'ean8';
+      case BarcodeFormat.upcA:
+        return 'upcA';
+      case BarcodeFormat.upcE:
+        return 'upcE';
+      case BarcodeFormat.dataMatrix:
+        return 'dataMatrix';
+      case BarcodeFormat.codabar:
+        return 'codabar';
+      default:
+        return 'qrCode';
+    }
   }
 }

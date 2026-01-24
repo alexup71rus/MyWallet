@@ -1,8 +1,14 @@
 import 'dart:math';
+import 'dart:io';
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mywallet/l10n/app_localizations.dart';
 import '../models/wallet_card.dart';
 import 'scanner_screen.dart';
+import '../services/pkpass_service.dart';
+import '../l10n/l10n.dart';
 
 class AddCardScreen extends StatefulWidget {
   final WalletCard? initialCard; // For linking support
@@ -20,7 +26,8 @@ class _AddCardScreenState extends State<AddCardScreen> {
 
   Color _selectedColor = Colors.blue;
   IconData _selectedIcon = Icons.store_rounded;
-  String _selectedCardType = 'Loyalty Card';
+  String _selectedCardTypeKey = 'loyalty';
+  String _format = 'qrCode';
 
   @override
   void dispose() {
@@ -28,14 +35,6 @@ class _AddCardScreenState extends State<AddCardScreen> {
     _codeController.dispose();
     super.dispose();
   }
-
-  final List<String> _cardTypes = [
-    'Loyalty Card',
-    'Gift Card',
-    'Membership Card',
-    'Discount Card',
-    'Club Card',
-  ];
 
   final List<Color> _colors = [
     Colors.blue,
@@ -46,6 +45,7 @@ class _AddCardScreenState extends State<AddCardScreen> {
     Colors.teal,
     Colors.pink,
     const Color(0xFF1E1E1E), // Black
+    Color(0xFFF5F5F5), // Noble White
     Colors.indigo,
     Colors.amber,
     Colors.cyan,
@@ -90,14 +90,19 @@ class _AddCardScreenState extends State<AddCardScreen> {
           fontFamily: 'MaterialIcons',
         );
       }
-      _selectedCardType = widget.initialCard!.cardType;
+      _selectedCardTypeKey = L10n.normalizeCardTypeKey(
+        widget.initialCard!.cardType,
+      );
+      _format = widget.initialCard!.format;
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final cardTypeLabel = L10n.cardTypeLabel(l10n, _selectedCardTypeKey);
     return Scaffold(
-      appBar: AppBar(title: const Text('Add New Card')),
+      appBar: AppBar(title: Text(l10n.addCardTitle)),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Form(
@@ -135,20 +140,32 @@ class _AddCardScreenState extends State<AddCardScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Icon(_selectedIcon, color: Colors.white, size: 32),
+                        Icon(
+                          _selectedIcon,
+                          color: _selectedColor == const Color(0xFFF5F5F5)
+                              ? Colors.black
+                              : Colors.white,
+                          size: 32,
+                        ),
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 8,
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.2),
+                            color:
+                                (_selectedColor == const Color(0xFFF5F5F5)
+                                        ? Colors.black
+                                        : Colors.white)
+                                    .withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
-                            _selectedCardType.toUpperCase(),
-                            style: const TextStyle(
-                              color: Colors.white,
+                            cardTypeLabel.toUpperCase(),
+                            style: TextStyle(
+                              color: _selectedColor == const Color(0xFFF5F5F5)
+                                  ? Colors.black
+                                  : Colors.white,
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
                             ),
@@ -161,10 +178,12 @@ class _AddCardScreenState extends State<AddCardScreen> {
                       children: [
                         Text(
                           _nameController.text.isEmpty
-                              ? 'Store Name'
+                              ? l10n.addCardStorePlaceholder
                               : _nameController.text,
                           style: GoogleFonts.poppins(
-                            color: Colors.white,
+                            color: _selectedColor == const Color(0xFFF5F5F5)
+                                ? Colors.black
+                                : Colors.white,
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
                           ),
@@ -174,10 +193,14 @@ class _AddCardScreenState extends State<AddCardScreen> {
                         const SizedBox(height: 8),
                         Text(
                           _codeController.text.isEmpty
-                              ? '0000 0000 0000'
+                              ? l10n.addCardCodePlaceholder
                               : _codeController.text,
                           style: GoogleFonts.sourceCodePro(
-                            color: Colors.white.withValues(alpha: 0.8),
+                            color:
+                                (_selectedColor == const Color(0xFFF5F5F5)
+                                        ? Colors.black
+                                        : Colors.white)
+                                    .withValues(alpha: 0.8),
                             fontSize: 16,
                             letterSpacing: 1.2,
                           ),
@@ -194,8 +217,8 @@ class _AddCardScreenState extends State<AddCardScreen> {
               TextFormField(
                 controller: _nameController,
                 decoration: InputDecoration(
-                  labelText: 'Service Name',
-                  hintText: 'e.g. Starbucks, Tesco',
+                  labelText: l10n.addCardServiceNameLabel,
+                  hintText: l10n.addCardServiceNameHint,
                   prefixIcon: const Icon(Icons.store),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -204,15 +227,15 @@ class _AddCardScreenState extends State<AddCardScreen> {
                   fillColor: Theme.of(context).colorScheme.surface,
                 ),
                 validator: (value) =>
-                    value!.isEmpty ? 'Please enter a name' : null,
+                    value!.isEmpty ? l10n.addCardNameValidation : null,
                 onChanged: (value) => setState(() {}),
               ),
               const SizedBox(height: 16),
 
               DropdownButtonFormField<String>(
-                initialValue: _selectedCardType,
+                initialValue: _selectedCardTypeKey,
                 decoration: InputDecoration(
-                  labelText: 'Card Type',
+                  labelText: l10n.addCardTypeLabel,
                   prefixIcon: const Icon(Icons.label),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -220,11 +243,17 @@ class _AddCardScreenState extends State<AddCardScreen> {
                   filled: true,
                   fillColor: Theme.of(context).colorScheme.surface,
                 ),
-                items: _cardTypes.map((type) {
-                  return DropdownMenuItem(value: type, child: Text(type));
-                }).toList(),
+                items: L10n.cardTypeKeys
+                    .map(
+                      (typeKey) => DropdownMenuItem(
+                        value: typeKey,
+                        child: Text(L10n.cardTypeLabel(l10n, typeKey)),
+                      ),
+                    )
+                    .toList(),
                 onChanged: (value) {
-                  setState(() => _selectedCardType = value!);
+                  if (value == null) return;
+                  setState(() => _selectedCardTypeKey = value);
                 },
               ),
               const SizedBox(height: 16),
@@ -235,8 +264,8 @@ class _AddCardScreenState extends State<AddCardScreen> {
                     child: TextFormField(
                       controller: _codeController,
                       decoration: InputDecoration(
-                        labelText: 'Card Code',
-                        hintText: 'Scan or enter code',
+                        labelText: l10n.addCardCodeLabel,
+                        hintText: l10n.addCardCodeHint,
                         prefixIcon: const Icon(Icons.qr_code),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -245,7 +274,7 @@ class _AddCardScreenState extends State<AddCardScreen> {
                         fillColor: Theme.of(context).colorScheme.surface,
                       ),
                       validator: (value) =>
-                          value!.isEmpty ? 'Please enter a code' : null,
+                          value!.isEmpty ? l10n.addCardCodeValidation : null,
                       onChanged: (value) => setState(() {}),
                     ),
                   ),
@@ -264,9 +293,9 @@ class _AddCardScreenState extends State<AddCardScreen> {
               ),
 
               const SizedBox(height: 24),
-              const Text(
-                'Card Icon',
-                style: TextStyle(fontWeight: FontWeight.bold),
+              Text(
+                l10n.addCardIconLabel,
+                style: const TextStyle(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
 
@@ -311,9 +340,9 @@ class _AddCardScreenState extends State<AddCardScreen> {
               ),
 
               const SizedBox(height: 24),
-              const Text(
-                'Card Color',
-                style: TextStyle(fontWeight: FontWeight.bold),
+              Text(
+                l10n.addCardColorLabel,
+                style: const TextStyle(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
 
@@ -337,7 +366,9 @@ class _AddCardScreenState extends State<AddCardScreen> {
                                     ).colorScheme.primary,
                                     width: 3,
                                   )
-                                : null,
+                                : (color == const Color(0xFFF5F5F5)
+                                      ? Border.all(color: Colors.grey.shade300)
+                                      : null),
                             boxShadow: [
                               BoxShadow(
                                 color: Colors.black.withValues(alpha: 0.1),
@@ -347,7 +378,12 @@ class _AddCardScreenState extends State<AddCardScreen> {
                             ],
                           ),
                           child: _selectedColor == color
-                              ? const Icon(Icons.check, color: Colors.white)
+                              ? Icon(
+                                  Icons.check,
+                                  color: color == const Color(0xFFF5F5F5)
+                                      ? Colors.black
+                                      : Colors.white,
+                                )
                               : null,
                         ),
                       ),
@@ -368,9 +404,12 @@ class _AddCardScreenState extends State<AddCardScreen> {
                   foregroundColor: Colors.white,
                   elevation: 2,
                 ),
-                child: const Text(
-                  'Save Card',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                child: Text(
+                  l10n.addCardSave,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],
@@ -380,15 +419,199 @@ class _AddCardScreenState extends State<AddCardScreen> {
     );
   }
 
+  String? _findDeepLinkInContent(String content, String code, String? cardId) {
+    var regex = RegExp(
+      r'''window\.OSMI\s*=\s*\{\s*NAV\s*:\s*['"]([^'"]+)['"]''',
+    );
+    var match = regex.firstMatch(content);
+    if (match != null) return match.group(1);
+
+    regex = RegExp(r'''NAV\s*:\s*["']([^"']+)["']''');
+    match = regex.firstMatch(content);
+
+    if (match == null) {
+      regex = RegExp(r'''OSMI\.NAV\s*=\s*["']([^"']+)["']''');
+      match = regex.firstMatch(content);
+    }
+
+    if (match != null) return match.group(1);
+
+    if (cardId != null) {
+      regex = RegExp(
+        r'''["']([^"']*/''' + RegExp.escape(cardId) + r'''[^"']*)["']''',
+      );
+      final matches = regex.allMatches(content);
+
+      for (final m in matches) {
+        final possibleLink = m.group(1);
+        if (possibleLink != null &&
+            !possibleLink.contains(code) &&
+            code != possibleLink) {
+          return possibleLink;
+        }
+      }
+    }
+    return null;
+  }
+
   Future<void> _scanCode() async {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const ScannerScreen()),
     );
-    if (result != null) {
-      setState(() {
-        _codeController.text = result;
-      });
+    if (result != null && result is Map) {
+      final code = result['code'] as String;
+      final format = result['format'] as String;
+
+      final uri = Uri.tryParse(code);
+      if (uri != null && (uri.isScheme('http') || uri.isScheme('https'))) {
+        try {
+          if (!mounted) return;
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (ctx) => const Center(child: CircularProgressIndicator()),
+          );
+
+          final client = HttpClient();
+          // Spoof a mobile browser to ensure we get the mobile version of the page (which contains the JS with the link)
+          // instead of the desktop version (which just shows a QR code).
+          client.userAgent =
+              'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
+          final request = await client.getUrl(Uri.parse(code));
+          final response = await request.close();
+
+          if (response.statusCode == 200) {
+            final bytes = await response.expand((x) => x).toList();
+            var processingBytes = Uint8List.fromList(bytes);
+
+            var card = await PkpassService().parsePkpass(processingBytes);
+
+            if (card == null) {
+              try {
+                final content = utf8.decode(bytes, allowMalformed: true);
+                if (content.contains('<html') ||
+                    content.contains('<!DOCTYPE html')) {
+                  final uriCode = Uri.tryParse(code);
+                  final cardId =
+                      (uriCode != null && uriCode.pathSegments.isNotEmpty)
+                      ? uriCode.pathSegments.last
+                      : null;
+
+                  var deepLink = _findDeepLinkInContent(content, code, cardId);
+
+                  if (deepLink == null) {
+                    final scriptRegex = RegExp(
+                      r'''<script[^>]+src=["']([^"']+)["']''',
+                      caseSensitive: false,
+                    );
+                    final scriptMatches = scriptRegex.allMatches(content);
+
+                    for (final sMatch in scriptMatches) {
+                      var scriptSrc = sMatch.group(1);
+                      if (scriptSrc != null) {
+                        var scriptUri = Uri.parse(scriptSrc);
+                        if (!scriptUri.hasScheme) {
+                          scriptUri = Uri.parse(code).resolve(scriptSrc);
+                        }
+
+                        try {
+                          final scriptReq = await client.getUrl(scriptUri);
+                          final scriptRes = await scriptReq.close();
+                          if (scriptRes.statusCode == 200) {
+                            final sBytes = await scriptRes
+                                .expand((x) => x)
+                                .toList();
+                            final sContent = utf8.decode(
+                              sBytes,
+                              allowMalformed: true,
+                            );
+
+                            deepLink = _findDeepLinkInContent(
+                              sContent,
+                              code,
+                              cardId,
+                            );
+                            if (deepLink != null) {
+                              break;
+                            }
+                          }
+                        } catch (e) {
+                          print('Failed to analyze script $scriptSrc: $e');
+                        }
+                      }
+                    }
+                  }
+
+                  if (deepLink != null) {
+                    deepLink = deepLink.replaceAll(r'\/', '/');
+                    var nextUri = Uri.parse(deepLink);
+                    if (!nextUri.hasScheme) {
+                      nextUri = Uri.parse(code).resolve(deepLink);
+                    }
+
+                    final request2 = await client.getUrl(nextUri);
+                    final response2 = await request2.close();
+                    if (response2.statusCode == 200) {
+                      final bytes2 = await response2.expand((x) => x).toList();
+                      final card2 = await PkpassService().parsePkpass(
+                        Uint8List.fromList(bytes2),
+                      );
+                      if (card2 != null) {
+                        card = card2;
+                      }
+                    }
+                  }
+                }
+              } catch (e) {
+                print('Error parsing HTML: $e');
+              }
+            }
+
+            if (mounted) {
+              Navigator.pop(context); // Close loading
+
+              if (card != null) {
+                Navigator.pop(context, card);
+                return;
+              } else {
+                final l10n = AppLocalizations.of(context)!;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(l10n.addCardLinkNotPass)),
+                );
+              }
+            }
+          } else {
+            if (mounted) {
+              Navigator.pop(context); // Close loading
+              final l10n = AppLocalizations.of(context)!;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    l10n.addCardFailedFetch(response.statusCode.toString()),
+                  ),
+                ),
+              );
+            }
+          }
+        } catch (e) {
+          if (mounted) {
+            Navigator.pop(context); // Close loading dialog if error
+            print('Download error: $e');
+            final l10n = AppLocalizations.of(context)!;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(l10n.addCardDownloadError(e.toString()))),
+            );
+          }
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _codeController.text = code;
+          _format = format;
+        });
+      }
     }
   }
 
@@ -405,7 +628,8 @@ class _AddCardScreenState extends State<AddCardScreen> {
         colorValue: _selectedColor.toARGB32(),
         iconPoint: _selectedIcon.codePoint,
         dateAdded: widget.initialCard?.dateAdded ?? DateTime.now(),
-        cardType: _selectedCardType,
+        cardType: _selectedCardTypeKey,
+        format: _format,
       );
       Navigator.pop(context, newCard);
     }
