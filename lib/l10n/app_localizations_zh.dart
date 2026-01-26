@@ -21,6 +21,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get homeAddCard => '添加卡片';
 
   @override
+  String get addCardOptionScan => '扫描二维码';
+
+  @override
+  String get addCardOptionImport => '从文件导入';
+
+  @override
+  String get addCardOptionManual => '手动添加';
+
+  @override
   String homeFailedImport(Object error) {
     return '导入卡片失败：$error';
   }
@@ -292,6 +301,15 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get homeAddCard => '添加卡片';
+
+  @override
+  String get addCardOptionScan => '扫描二维码';
+
+  @override
+  String get addCardOptionImport => '从文件导入';
+
+  @override
+  String get addCardOptionManual => '手动添加';
 
   @override
   String homeFailedImport(Object error) {

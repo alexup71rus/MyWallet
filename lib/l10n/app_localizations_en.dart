@@ -21,6 +21,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeAddCard => 'Add Card';
 
   @override
+  String get addCardOptionScan => 'Scan QR code';
+
+  @override
+  String get addCardOptionImport => 'Import from file';
+
+  @override
+  String get addCardOptionManual => 'Add manually';
+
+  @override
   String homeFailedImport(Object error) {
     return 'Failed to import card: $error';
   }

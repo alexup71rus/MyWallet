@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:app_links/app_links.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mywallet/l10n/app_localizations.dart';
 import '../models/wallet_card.dart';
@@ -162,6 +163,103 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       }
     }
+  }
+
+  Future<void> _openAddCardScreen({bool autoScan = false}) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddCardScreen(autoScan: autoScan),
+      ),
+    );
+    if (result != null && result is WalletCard) {
+      _addCard(result);
+    }
+  }
+
+  Future<void> _importPkpassFromFile() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pkpass'],
+      );
+
+      if (result != null) {
+        final path = result.files.single.path;
+        if (path == null) return;
+
+        final card = await PkpassService.parseFile(path);
+        if (card == null) {
+          if (!mounted) return;
+          final l10n = AppLocalizations.of(context)!;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l10n.snackbarPkpassParseFailed)),
+          );
+          return;
+        }
+
+        final newCards = List<WalletCard>.from(_cards)..insert(0, card);
+        if (!mounted) return;
+        setState(() {
+          _cards = newCards;
+        });
+        await _storageService.saveCards(newCards);
+
+        final l10n = AppLocalizations.of(context)!;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.snackbarPkpassImported)),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.snackbarPkpassImportFailed(e.toString()))),
+      );
+    }
+  }
+
+  Future<void> _showAddCardOptions() async {
+    final l10n = AppLocalizations.of(context)!;
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Wrap(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.qr_code_scanner),
+                  title: Text(l10n.addCardOptionScan),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _openAddCardScreen(autoScan: true);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.file_present),
+                  title: Text(l10n.addCardOptionImport),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _importPkpassFromFile();
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.edit),
+                  title: Text(l10n.addCardOptionManual),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _openAddCardScreen();
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _promptLanguageSelectionIfNeeded() async {
@@ -384,15 +482,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () async {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const AddCardScreen()),
-          );
-          if (result != null && result is WalletCard) {
-            _addCard(result);
-          }
-        },
+        onPressed: _showAddCardOptions,
         label: Text(
           l10n.homeAddCard,
           style: const TextStyle(fontWeight: FontWeight.bold),

@@ -21,6 +21,15 @@ class AppLocalizationsAr extends AppLocalizations {
   String get homeAddCard => 'إضافة بطاقة';
 
   @override
+  String get addCardOptionScan => 'مسح رمز QR';
+
+  @override
+  String get addCardOptionImport => 'استيراد من ملف';
+
+  @override
+  String get addCardOptionManual => 'إضافة يدويًا';
+
+  @override
   String homeFailedImport(Object error) {
     return 'فشل استيراد البطاقة: $error';
   }

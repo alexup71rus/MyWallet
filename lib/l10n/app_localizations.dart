@@ -129,6 +129,24 @@ abstract class AppLocalizations {
   /// **'Add Card'**
   String get homeAddCard;
 
+  /// No description provided for @addCardOptionScan.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan QR code'**
+  String get addCardOptionScan;
+
+  /// No description provided for @addCardOptionImport.
+  ///
+  /// In en, this message translates to:
+  /// **'Import from file'**
+  String get addCardOptionImport;
+
+  /// No description provided for @addCardOptionManual.
+  ///
+  /// In en, this message translates to:
+  /// **'Add manually'**
+  String get addCardOptionManual;
+
   /// No description provided for @homeFailedImport.
   ///
   /// In en, this message translates to:
