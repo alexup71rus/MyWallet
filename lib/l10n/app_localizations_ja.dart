@@ -21,6 +21,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get homeAddCard => 'カードを追加';
 
   @override
+  String get addCardOptionScan => 'QRコードをスキャン';
+
+  @override
+  String get addCardOptionImport => 'ファイルからインポート';
+
+  @override
+  String get addCardOptionManual => '手動で追加';
+
+  @override
   String homeFailedImport(Object error) {
     return 'カードのインポートに失敗しました: $error';
   }

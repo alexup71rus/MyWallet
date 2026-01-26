@@ -12,8 +12,9 @@ import '../l10n/l10n.dart';
 
 class AddCardScreen extends StatefulWidget {
   final WalletCard? initialCard; // For linking support
+  final bool autoScan;
 
-  const AddCardScreen({super.key, this.initialCard});
+  const AddCardScreen({super.key, this.initialCard, this.autoScan = false});
 
   @override
   State<AddCardScreen> createState() => _AddCardScreenState();
@@ -95,6 +96,14 @@ class _AddCardScreenState extends State<AddCardScreen> {
       );
       _format = widget.initialCard!.format;
     }
+
+    if (widget.autoScan) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _scanCode();
+        }
+      });
+    }
   }
 
   @override
@@ -104,7 +113,12 @@ class _AddCardScreenState extends State<AddCardScreen> {
     return Scaffold(
       appBar: AppBar(title: Text(l10n.addCardTitle)),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.fromLTRB(
+          24,
+          24,
+          24,
+          24 + MediaQuery.of(context).padding.bottom,
+        ),
         child: Form(
           key: _formKey,
           child: Column(

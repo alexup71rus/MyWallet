@@ -21,6 +21,15 @@ class AppLocalizationsRu extends AppLocalizations {
   String get homeAddCard => 'Добавить карту';
 
   @override
+  String get addCardOptionScan => 'Сканировать QR-код';
+
+  @override
+  String get addCardOptionImport => 'Импорт из файла';
+
+  @override
+  String get addCardOptionManual => 'Добавить вручную';
+
+  @override
   String homeFailedImport(Object error) {
     return 'Не удалось импортировать карту: $error';
   }
