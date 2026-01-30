@@ -87,6 +87,7 @@
   "barcodeError": "Ошибка генерации штрихкода: {error}",
   "qrCodeLabel": "QR-код",
   "pointsLabelDefault": "Баллы",
+  "balanceLabel": "Баланс",
   "languageEnglish": "Английский",
   "languageChineseSimplified": "Китайский (упрощенный)",
   "languageJapanese": "Японский",

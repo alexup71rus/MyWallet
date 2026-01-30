@@ -6,6 +6,7 @@ import 'package:barcode_widget/barcode_widget.dart';
 import 'package:screen_brightness/screen_brightness.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mywallet/l10n/app_localizations.dart';
+import '../l10n/l10n.dart';
 import '../models/wallet_card.dart';
 import '../services/pkpass_service.dart';
 import 'add_card_screen.dart';
@@ -269,7 +270,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                             if (_card.pointsValue != null) ...[
                               const SizedBox(height: 8),
                               Text(
-                                '${_card.pointsLabel ?? l10n.pointsLabelDefault}: ${_card.pointsValue}',
+                                '${L10n.pointsLabel(l10n, _card.pointsLabel)}: ${_card.pointsValue}',
                                 style: GoogleFonts.poppins(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w600,

@@ -87,6 +87,7 @@
   "barcodeError": "Error generating barcode: {error}",
   "qrCodeLabel": "QR code",
   "pointsLabelDefault": "Points",
+  "balanceLabel": "Balance",
   "languageEnglish": "English",
   "languageChineseSimplified": "Simplified Chinese",
   "languageJapanese": "Japanese",

@@ -292,6 +292,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get pointsLabelDefault => '积分';
 
   @override
+  String get balanceLabel => '余额';
+
+  @override
   String get languageEnglish => '英语';
 
   @override
@@ -593,6 +596,9 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get pointsLabelDefault => '积分';
+
+  @override
+  String get balanceLabel => '余额';
 
   @override
   String get languageEnglish => '英语';

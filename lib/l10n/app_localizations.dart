@@ -627,6 +627,12 @@ abstract class AppLocalizations {
   /// **'Points'**
   String get pointsLabelDefault;
 
+  /// No description provided for @balanceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Balance'**
+  String get balanceLabel;
+
   /// No description provided for @languageEnglish.
   ///
   /// In en, this message translates to:

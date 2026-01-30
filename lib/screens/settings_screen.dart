@@ -16,6 +16,7 @@ import '../services/pkpass_service.dart';
 import '../services/locale_service.dart';
 import '../l10n/l10n.dart';
 import '../widgets/language_picker.dart';
+import '../widgets/dev_tools_section.dart';
 import '../models/wallet_card.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -483,47 +484,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   title: Text(l10n.settingsVersion),
                   trailing: Text(_appVersion ?? '—'),
                 ),
-                if (kDebugMode) ...[
-                  const Divider(),
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Text(
-                      l10n.settingsDevToolsSection,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey,
-                      ),
-                    ),
+                if (kDebugMode)
+                  DevToolsSection(
+                    count: _demoCardsCount,
+                    onCountChanged: _updateDemoCount,
+                    onGenerate: _generateDemoCards,
+                    onRemove: _removeDemoCards,
                   ),
-                  ListTile(
-                    leading: const Icon(Icons.tune),
-                    title: Text(l10n.settingsDemoCardsCountLabel),
-                    trailing: SizedBox(
-                      width: 72,
-                      child: TextField(
-                        keyboardType: TextInputType.number,
-                        textAlign: TextAlign.end,
-                        controller: TextEditingController(
-                          text: _demoCardsCount.toString(),
-                        ),
-                        onSubmitted: (value) {
-                          final parsed = int.tryParse(value) ?? 20;
-                          _updateDemoCount(parsed);
-                        },
-                      ),
-                    ),
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.playlist_add),
-                    title: Text(l10n.settingsDemoCardsGenerate),
-                    onTap: _generateDemoCards,
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.delete_outline),
-                    title: Text(l10n.settingsDemoCardsRemove),
-                    onTap: _removeDemoCards,
-                  ),
-                ],
               ],
             ),
     );

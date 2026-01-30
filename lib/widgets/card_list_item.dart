@@ -196,7 +196,7 @@ class CardListItem extends StatelessWidget {
                         children: [
                           Expanded(
                             child: Text(
-                              '${card.pointsLabel ?? l10n.pointsLabelDefault}: ${card.pointsValue}',
+                              '${L10n.pointsLabel(l10n, card.pointsLabel)}: ${card.pointsValue}',
                               style: GoogleFonts.poppins(
                                 color:
                                     (color == const Color(0xFFF5F5F5)

@@ -87,6 +87,7 @@
   "barcodeError": "خطأ في إنشاء الباركود: {error}",
   "qrCodeLabel": "رمز QR",
   "pointsLabelDefault": "النقاط",
+  "balanceLabel": "الرصيد",
   "languageEnglish": "الإنجليزية",
   "languageChineseSimplified": "الصينية المبسطة",
   "languageJapanese": "اليابانية",

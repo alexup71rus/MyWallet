@@ -7,6 +7,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mywallet/l10n/app_localizations.dart';
+import '../models/card_distance.dart';
 import '../models/wallet_card.dart';
 import '../services/storage_service.dart';
 import '../services/intent_handler_service.dart';
@@ -39,7 +40,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _showFavoritesOnly = false;
   bool _favoritesExpanded = false;
   bool _pinFavoritesToggle = false;
-  bool _pendingPinCheck = false;
+  Timer? _pinDebounce;
   static const double _nearbyThresholdMeters = 500;
   static const Duration _notificationCooldown = Duration(hours: 6);
 
@@ -59,14 +60,14 @@ class _HomeScreenState extends State<HomeScreen> {
   void dispose() {
     _linkSubscription?.cancel();
     _scrollController.dispose();
+    _pinDebounce?.cancel();
     super.dispose();
   }
 
   void _schedulePinCheck() {
-    if (_pendingPinCheck) return;
-    _pendingPinCheck = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _pendingPinCheck = false;
+    if (_pinDebounce?.isActive ?? false) return;
+    _pinDebounce = Timer(const Duration(milliseconds: 50), () {
+      if (!mounted) return;
       _updateFavoritesTogglePin();
     });
   }
@@ -116,17 +117,13 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _initDeepLinks() async {
     _appLinks = AppLinks();
 
-    // Check initial link
     try {
       final Uri? initialUri = await _appLinks.getInitialLink();
       if (initialUri != null) {
         _handleDeepLink(initialUri);
       }
-    } catch (e) {
-      // Ignore errors handling initial link
-    }
+    } catch (e) {}
 
-    // Handle incoming links while app is in foreground/background
     _linkSubscription = _appLinks.uriLinkStream.listen((Uri? uri) {
       if (uri != null) {
         _handleDeepLink(uri);
@@ -180,7 +177,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _initIntentHandler() async {
-    // Handle initial intent (app opened via share/open with)
     if (Platform.isAndroid || Platform.isIOS) {
       final String? filePath =
           await IntentHandlerService.getInitialIntentData();
@@ -188,7 +184,6 @@ class _HomeScreenState extends State<HomeScreen> {
         _handleSharedFile(filePath);
       }
 
-      // Listen for new intents while app is running
       IntentHandlerService.listenForIntents((filePath) {
         _handleSharedFile(filePath);
       });
@@ -221,7 +216,6 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       }
 
-      // Clean up temp file
       try {
         await file.delete();
       } catch (_) {}
@@ -348,7 +342,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadCards() async {
     final cards = await _storageService.loadCards();
-    // Sort by Date Added descending
     cards.sort((a, b) => b.dateAdded.compareTo(a.dateAdded));
     final sortedCards = await _sortCardsByProximity(cards);
     if (!mounted) return;
@@ -411,13 +404,13 @@ class _HomeScreenState extends State<HomeScreen> {
       desiredAccuracy: LocationAccuracy.low,
     );
 
-    final nearby = <_CardDistance>[];
+    final nearby = <CardDistance>[];
     final others = <WalletCard>[];
 
     for (final card in cards) {
       final distance = _minDistanceToCard(position, card);
       if (distance != null && distance <= _nearbyThresholdMeters) {
-        nearby.add(_CardDistance(card: card, distanceMeters: distance));
+        nearby.add(CardDistance(card: card, distanceMeters: distance));
       } else {
         others.add(card);
       }
@@ -430,7 +423,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return [...nearby.map((e) => e.card), ...others];
   }
 
-  Future<void> _maybeNotifyNearbyCard(List<_CardDistance> nearby) async {
+  Future<void> _maybeNotifyNearbyCard(List<CardDistance> nearby) async {
     if (nearby.isEmpty) return;
 
     final prefs = await SharedPreferences.getInstance();
@@ -508,26 +501,6 @@ class _HomeScreenState extends State<HomeScreen> {
     final ordered = [...favorites, ...others];
     if (_showFavoritesOnly) return favorites;
     return ordered;
-  }
-
-  List<Widget> _buildCardItems(AppLocalizations l10n) {
-    final favorites = _cards.where((c) => c.isFavorite == true).toList();
-    final others = _cards.where((c) => c.isFavorite != true).toList();
-
-    if (_showFavoritesOnly) {
-      return [_buildFavoritesSection(favorites, l10n)];
-    }
-
-    final items = <Widget>[];
-    if (favorites.isNotEmpty) {
-      items.add(_buildFavoritesSection(favorites, l10n));
-    }
-
-    for (final card in others) {
-      items.add(_buildCardItem(card));
-    }
-
-    return items;
   }
 
   Widget _buildFavoritesSection(
@@ -792,7 +765,42 @@ class _HomeScreenState extends State<HomeScreen> {
                   SliverPadding(
                     padding: const EdgeInsets.only(top: 10, bottom: 80),
                     sliver: SliverList(
-                      delegate: SliverChildListDelegate(_buildCardItems(l10n)),
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          final favorites = _cards
+                              .where((c) => c.isFavorite == true)
+                              .toList();
+                          final others = _cards
+                              .where((c) => c.isFavorite != true)
+                              .toList();
+
+                          if (_showFavoritesOnly) {
+                            return _buildFavoritesSection(favorites, l10n);
+                          }
+
+                          final hasFavoritesSection = favorites.isNotEmpty;
+                          if (hasFavoritesSection && index == 0) {
+                            return _buildFavoritesSection(favorites, l10n);
+                          }
+
+                          final otherIndex = hasFavoritesSection
+                              ? index - 1
+                              : index;
+                          return _buildCardItem(others[otherIndex]);
+                        },
+                        childCount: () {
+                          final favorites = _cards
+                              .where((c) => c.isFavorite == true)
+                              .toList();
+                          final others = _cards
+                              .where((c) => c.isFavorite != true)
+                              .toList();
+                          if (_showFavoritesOnly) {
+                            return favorites.isEmpty ? 0 : 1;
+                          }
+                          return (favorites.isNotEmpty ? 1 : 0) + others.length;
+                        }(),
+                      ),
                     ),
                   ),
               ],
@@ -852,11 +860,4 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-}
-
-class _CardDistance {
-  final WalletCard card;
-  final double distanceMeters;
-
-  const _CardDistance({required this.card, required this.distanceMeters});
 }

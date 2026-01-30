@@ -297,6 +297,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get pointsLabelDefault => 'النقاط';
 
   @override
+  String get balanceLabel => 'الرصيد';
+
+  @override
   String get languageEnglish => 'الإنجليزية';
 
   @override

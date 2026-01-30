@@ -87,6 +87,7 @@
   "barcodeError": "バーコードの生成エラー: {error}",
   "qrCodeLabel": "QRコード",
   "pointsLabelDefault": "ポイント",
+  "balanceLabel": "残高",
   "languageEnglish": "英語",
   "languageChineseSimplified": "中国語（簡体）",
   "languageJapanese": "日本語",

@@ -1,3 +1,5 @@
+import 'pass_location.dart';
+
 class WalletCard {
   final String id;
   final String code;
@@ -83,7 +85,7 @@ class WalletCard {
     format: json['format'] ?? 'qrCode',
     iconPath: json['iconPath'],
     foregroundColor: json['foregroundColor'],
-    locations: _decodeLocations(json['locations']),
+    locations: PassLocation.decodeLocations(json['locations']),
     isFavorite: json['isFavorite'] == true,
     isDemo: json['isDemo'] == true,
   );
@@ -109,74 +111,4 @@ class WalletCard {
     isFavorite: isFavorite ?? this.isFavorite ?? false,
     isDemo: isDemo ?? this.isDemo,
   );
-}
-
-class PassLocation {
-  final double latitude;
-  final double longitude;
-  final String? relevantText;
-
-  const PassLocation({
-    required this.latitude,
-    required this.longitude,
-    this.relevantText,
-  });
-
-  Map<String, dynamic> toJson() => {
-    'latitude': latitude,
-    'longitude': longitude,
-    if (relevantText != null) 'relevantText': relevantText,
-  };
-
-  factory PassLocation.fromJson(Map<String, dynamic> json) {
-    final lat = _toDouble(json['latitude']);
-    final lon = _toDouble(json['longitude']);
-
-    return PassLocation(
-      latitude: lat ?? 0,
-      longitude: lon ?? 0,
-      relevantText: json['relevantText']?.toString(),
-    );
-  }
-}
-
-List<PassLocation> _decodeLocations(dynamic raw) {
-  if (raw is! List) return const [];
-
-  final locations = <PassLocation>[];
-  for (final item in raw) {
-    if (item is Map<String, dynamic>) {
-      final lat = _toDouble(item['latitude']);
-      final lon = _toDouble(item['longitude']);
-      if (lat != null && lon != null) {
-        locations.add(
-          PassLocation(
-            latitude: lat,
-            longitude: lon,
-            relevantText: item['relevantText']?.toString(),
-          ),
-        );
-      }
-    } else if (item is Map) {
-      final lat = _toDouble(item['latitude']);
-      final lon = _toDouble(item['longitude']);
-      if (lat != null && lon != null) {
-        locations.add(
-          PassLocation(
-            latitude: lat,
-            longitude: lon,
-            relevantText: item['relevantText']?.toString(),
-          ),
-        );
-      }
-    }
-  }
-
-  return locations;
-}
-
-double? _toDouble(dynamic value) {
-  if (value is num) return value.toDouble();
-  if (value is String) return double.tryParse(value);
-  return null;
 }

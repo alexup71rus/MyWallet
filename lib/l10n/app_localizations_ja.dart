@@ -294,6 +294,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get pointsLabelDefault => 'ポイント';
 
   @override
+  String get balanceLabel => '残高';
+
+  @override
   String get languageEnglish => '英語';
 
   @override

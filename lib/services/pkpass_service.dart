@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:archive/archive.dart';
 import 'package:path_provider/path_provider.dart';
 import '../models/wallet_card.dart';
+import '../models/pass_location.dart';
 
 class PkpassService {
   static Future<WalletCard?> parseFile(String path) async {

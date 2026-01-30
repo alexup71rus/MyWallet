@@ -299,6 +299,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get pointsLabelDefault => 'Баллы';
 
   @override
+  String get balanceLabel => 'Баланс';
+
+  @override
   String get languageEnglish => 'Английский';
 
   @override

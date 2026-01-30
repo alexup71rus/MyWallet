@@ -298,6 +298,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pointsLabelDefault => 'Points';
 
   @override
+  String get balanceLabel => 'Balance';
+
+  @override
   String get languageEnglish => 'English';
 
   @override

@@ -98,4 +98,15 @@ class L10n {
         return cardType;
     }
   }
+
+  static String pointsLabel(AppLocalizations l10n, String? label) {
+    if (label == null || label.trim().isEmpty) {
+      return l10n.pointsLabelDefault;
+    }
+    final normalized = label.trim().toLowerCase();
+    if (normalized == 'balance') {
+      return l10n.balanceLabel;
+    }
+    return label;
+  }
 }
