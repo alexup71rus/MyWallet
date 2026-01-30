@@ -224,7 +224,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get addCardSave => 'カードを保存';
 
   @override
-  String get addCardLinkNotPass => 'リンクから有効なパスファイルが取得できませんでした。コードとして使用します。';
+  String get addCardLinkNotPass =>
+      'リンクからカード情報を取得できませんでした。手動で入力してください。リンクは保存され、レジで使用できます。';
 
   @override
   String addCardFailedFetch(Object status) {
@@ -235,6 +236,27 @@ class AppLocalizationsJa extends AppLocalizations {
   String addCardDownloadError(Object error) {
     return 'ダウンロードエラー: $error';
   }
+
+  @override
+  String get commonOk => 'OK';
+
+  @override
+  String get favoritesExpand => 'お気に入りを展開';
+
+  @override
+  String get favoritesCollapse => 'お気に入りを折りたたむ';
+
+  @override
+  String get settingsDevToolsSection => '開発者ツール';
+
+  @override
+  String get settingsDemoCardsGenerate => 'デモカードを生成';
+
+  @override
+  String get settingsDemoCardsRemove => 'デモカードを削除';
+
+  @override
+  String get settingsDemoCardsCountLabel => 'デモカード数';
 
   @override
   String get scannerTitle => 'QRコードをスキャン';

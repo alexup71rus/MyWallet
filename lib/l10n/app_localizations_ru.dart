@@ -228,7 +228,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get addCardLinkNotPass =>
-      'Ссылка не вернула файл пропуска. Используем как код.';
+      'Не удалось получить данные по этой ссылке. Заполните вручную — ссылка сохранена и будет работать на кассе.';
 
   @override
   String addCardFailedFetch(Object status) {
@@ -239,6 +239,27 @@ class AppLocalizationsRu extends AppLocalizations {
   String addCardDownloadError(Object error) {
     return 'Ошибка загрузки: $error';
   }
+
+  @override
+  String get commonOk => 'ОК';
+
+  @override
+  String get favoritesExpand => 'Развернуть избранные';
+
+  @override
+  String get favoritesCollapse => 'Свернуть избранные';
+
+  @override
+  String get settingsDevToolsSection => 'Инструменты разработчика';
+
+  @override
+  String get settingsDemoCardsGenerate => 'Сгенерировать демо-карты';
+
+  @override
+  String get settingsDemoCardsRemove => 'Удалить демо-карты';
+
+  @override
+  String get settingsDemoCardsCountLabel => 'Количество демо-карт';
 
   @override
   String get scannerTitle => 'Сканировать QR-код';

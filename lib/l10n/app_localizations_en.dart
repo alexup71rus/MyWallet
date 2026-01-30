@@ -228,7 +228,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get addCardLinkNotPass =>
-      'Link did not return a valid pass file. Using as code.';
+      'Couldn\'t fetch card data from this link. Fill in manually — the link is saved and will work at checkout.';
 
   @override
   String addCardFailedFetch(Object status) {
@@ -239,6 +239,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String addCardDownloadError(Object error) {
     return 'Error downloading: $error';
   }
+
+  @override
+  String get commonOk => 'OK';
+
+  @override
+  String get favoritesExpand => 'Expand favorites';
+
+  @override
+  String get favoritesCollapse => 'Collapse favorites';
+
+  @override
+  String get settingsDevToolsSection => 'Developer Tools';
+
+  @override
+  String get settingsDemoCardsGenerate => 'Generate demo cards';
+
+  @override
+  String get settingsDemoCardsRemove => 'Remove demo cards';
+
+  @override
+  String get settingsDemoCardsCountLabel => 'Demo cards count';
 
   @override
   String get scannerTitle => 'Scan QR Code';

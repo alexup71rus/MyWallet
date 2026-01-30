@@ -16,6 +16,8 @@ class WalletCard {
   final String? iconPath;
   final int? foregroundColor;
   final List<PassLocation> locations;
+  final bool? isFavorite;
+  final bool isDemo;
 
   WalletCard({
     required this.id,
@@ -35,6 +37,8 @@ class WalletCard {
     this.iconPath,
     this.foregroundColor,
     this.locations = const [],
+    this.isFavorite,
+    this.isDemo = false,
   });
 
   Map<String, dynamic> toJson() => {
@@ -56,6 +60,8 @@ class WalletCard {
     if (foregroundColor != null) 'foregroundColor': foregroundColor,
     if (locations.isNotEmpty)
       'locations': locations.map((e) => e.toJson()).toList(),
+    'isFavorite': isFavorite == true,
+    'isDemo': isDemo,
   };
 
   factory WalletCard.fromJson(Map<String, dynamic> json) => WalletCard(
@@ -78,6 +84,30 @@ class WalletCard {
     iconPath: json['iconPath'],
     foregroundColor: json['foregroundColor'],
     locations: _decodeLocations(json['locations']),
+    isFavorite: json['isFavorite'] == true,
+    isDemo: json['isDemo'] == true,
+  );
+
+  WalletCard copyWith({bool? isFavorite, bool? isDemo}) => WalletCard(
+    id: id,
+    code: code,
+    displayCode: displayCode,
+    name: name,
+    colorValue: colorValue,
+    iconPoint: iconPoint,
+    dateAdded: dateAdded,
+    cardType: cardType,
+    pointsLabel: pointsLabel,
+    pointsValue: pointsValue,
+    webServiceURL: webServiceURL,
+    authenticationToken: authenticationToken,
+    passTypeIdentifier: passTypeIdentifier,
+    format: format,
+    iconPath: iconPath,
+    foregroundColor: foregroundColor,
+    locations: locations,
+    isFavorite: isFavorite ?? this.isFavorite ?? false,
+    isDemo: isDemo ?? this.isDemo,
   );
 }
 

@@ -29,10 +29,17 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final StorageService _storageService = StorageService();
   final NotificationService _notificationService = NotificationService.instance;
+  final ScrollController _scrollController = ScrollController();
+  final GlobalKey _favoritesToggleKey = GlobalKey();
+  final GlobalKey _favoritesSectionKey = GlobalKey();
   late AppLinks _appLinks;
   StreamSubscription<Uri>? _linkSubscription;
   List<WalletCard> _cards = [];
   bool _isLoading = true;
+  bool _showFavoritesOnly = false;
+  bool _favoritesExpanded = false;
+  bool _pinFavoritesToggle = false;
+  bool _pendingPinCheck = false;
   static const double _nearbyThresholdMeters = 500;
   static const Duration _notificationCooldown = Duration(hours: 6);
 
@@ -42,6 +49,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadCards();
     _initDeepLinks();
     _initIntentHandler();
+    _scrollController.addListener(_schedulePinCheck);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _promptLanguageSelectionIfNeeded();
     });
@@ -50,7 +58,59 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     _linkSubscription?.cancel();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  void _schedulePinCheck() {
+    if (_pendingPinCheck) return;
+    _pendingPinCheck = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _pendingPinCheck = false;
+      _updateFavoritesTogglePin();
+    });
+  }
+
+  void _updateFavoritesTogglePin() {
+    final favoritesCount = _cards.where((c) => c.isFavorite == true).length;
+    final showToggle = !_showFavoritesOnly && favoritesCount > 1;
+    if (!showToggle) {
+      if (_pinFavoritesToggle) {
+        setState(() {
+          _pinFavoritesToggle = false;
+        });
+      }
+      return;
+    }
+
+    final sectionContext = _favoritesSectionKey.currentContext;
+    final buttonContext = _favoritesToggleKey.currentContext;
+    if (sectionContext == null || buttonContext == null) return;
+
+    final sectionBox = sectionContext.findRenderObject() as RenderBox?;
+    final buttonBox = buttonContext.findRenderObject() as RenderBox?;
+    if (sectionBox == null || buttonBox == null) return;
+    if (!sectionBox.hasSize || !buttonBox.hasSize) return;
+
+    final sectionOffset = sectionBox.localToGlobal(Offset.zero);
+    final sectionBottom = sectionOffset.dy + sectionBox.size.height;
+    final buttonOffset = buttonBox.localToGlobal(Offset.zero);
+    final buttonBottom = buttonOffset.dy + buttonBox.size.height;
+    final mediaQuery = MediaQuery.of(context);
+    const fabHeight = 56.0;
+    const fabMargin = 16.0;
+    final fabTop =
+        mediaQuery.size.height -
+        mediaQuery.padding.bottom -
+        fabMargin -
+        fabHeight;
+    final shouldPin = sectionBottom > fabTop && buttonBottom > fabTop;
+
+    if (shouldPin != _pinFavoritesToggle && mounted) {
+      setState(() {
+        _pinFavoritesToggle = shouldPin;
+      });
+    }
   }
 
   Future<void> _initDeepLinks() async {
@@ -108,6 +168,11 @@ class _HomeScreenState extends State<HomeScreen> {
             if (result != null && result is WalletCard) {
               _addCard(result);
             }
+            if (mounted) {
+              setState(() {
+                _favoritesExpanded = false;
+              });
+            }
           });
         }
       }
@@ -149,6 +214,11 @@ class _HomeScreenState extends State<HomeScreen> {
         if (result != null && result is WalletCard) {
           _addCard(result);
         }
+        if (mounted) {
+          setState(() {
+            _favoritesExpanded = false;
+          });
+        }
       }
 
       // Clean up temp file
@@ -174,6 +244,11 @@ class _HomeScreenState extends State<HomeScreen> {
     );
     if (result != null && result is WalletCard) {
       _addCard(result);
+    }
+    if (mounted) {
+      setState(() {
+        _favoritesExpanded = false;
+      });
     }
   }
 
@@ -206,9 +281,9 @@ class _HomeScreenState extends State<HomeScreen> {
         await _storageService.saveCards(newCards);
 
         final l10n = AppLocalizations.of(context)!;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.snackbarPkpassImported)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.snackbarPkpassImported)));
       }
     } catch (e) {
       if (!mounted) return;
@@ -281,6 +356,37 @@ class _HomeScreenState extends State<HomeScreen> {
       _cards = sortedCards;
       _isLoading = false;
     });
+    await _restoreMissingIcons(sortedCards);
+  }
+
+  Future<void> _restoreMissingIcons(List<WalletCard> cards) async {
+    var changed = false;
+    final updatedCards = List<WalletCard>.from(cards);
+
+    for (var i = 0; i < updatedCards.length; i++) {
+      final card = updatedCards[i];
+      if (card.iconPath != null && File(card.iconPath!).existsSync()) {
+        continue;
+      }
+
+      if (card.webServiceURL == null ||
+          card.authenticationToken == null ||
+          card.passTypeIdentifier == null) {
+        continue;
+      }
+
+      final refreshed = await PkpassService.updatePass(card);
+      if (refreshed != null && refreshed.iconPath != null) {
+        updatedCards[i] = refreshed;
+        changed = true;
+      }
+    }
+
+    if (!mounted || !changed) return;
+    setState(() {
+      _cards = updatedCards;
+    });
+    await _storageService.saveCards(updatedCards);
   }
 
   Future<List<WalletCard>> _sortCardsByProximity(List<WalletCard> cards) async {
@@ -396,87 +502,342 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  List<WalletCard> _getVisibleCards() {
+    final favorites = _cards.where((c) => c.isFavorite == true).toList();
+    final others = _cards.where((c) => c.isFavorite != true).toList();
+    final ordered = [...favorites, ...others];
+    if (_showFavoritesOnly) return favorites;
+    return ordered;
+  }
+
+  List<Widget> _buildCardItems(AppLocalizations l10n) {
+    final favorites = _cards.where((c) => c.isFavorite == true).toList();
+    final others = _cards.where((c) => c.isFavorite != true).toList();
+
+    if (_showFavoritesOnly) {
+      return [_buildFavoritesSection(favorites, l10n)];
+    }
+
+    final items = <Widget>[];
+    if (favorites.isNotEmpty) {
+      items.add(_buildFavoritesSection(favorites, l10n));
+    }
+
+    for (final card in others) {
+      items.add(_buildCardItem(card));
+    }
+
+    return items;
+  }
+
+  Widget _buildFavoritesSection(
+    List<WalletCard> favorites,
+    AppLocalizations l10n,
+  ) {
+    if (favorites.isEmpty) return const SizedBox.shrink();
+
+    const double cardHeight = 196;
+    const double overlapOffset = 48;
+
+    final isExpandedView = _favoritesExpanded || favorites.length == 1;
+    final expandedView = Column(
+      key: const ValueKey('favorites-expanded'),
+      children: favorites.map(_buildCardItem).toList(growable: false),
+    );
+    final collapsedView = SizedBox(
+      key: const ValueKey('favorites-collapsed'),
+      height: cardHeight + (favorites.length - 1) * overlapOffset,
+      child: Stack(
+        children: [
+          for (var i = 0; i < favorites.length; i++)
+            Positioned(
+              top: i * overlapOffset,
+              left: 0,
+              right: 0,
+              child: _buildCardItem(favorites[i]),
+            ),
+        ],
+      ),
+    );
+
+    final listContent = AnimatedSize(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeInOut,
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 200),
+        switchInCurve: Curves.easeInOut,
+        switchOutCurve: Curves.easeInOut,
+        child: isExpandedView ? expandedView : collapsedView,
+      ),
+    );
+
+    final showInlineToggle = !_showFavoritesOnly && favorites.length > 1;
+
+    return Container(
+      key: _favoritesSectionKey,
+      child: Column(
+        children: [
+          listContent,
+          if (showInlineToggle) ...[
+            const SizedBox(height: 0),
+            Opacity(
+              opacity: _pinFavoritesToggle ? 0 : 1,
+              child: IgnorePointer(
+                ignoring: _pinFavoritesToggle,
+                child: Center(
+                  child: OutlinedButton(
+                    key: _favoritesToggleKey,
+                    onPressed: () {
+                      setState(() {
+                        _favoritesExpanded = !_favoritesExpanded;
+                      });
+                    },
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.3),
+                        width: 1.5,
+                      ),
+                      foregroundColor: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 6,
+                      ),
+                      backgroundColor: Theme.of(
+                        context,
+                      ).colorScheme.surface.withValues(alpha: 0.12),
+                    ),
+                    child: Text(
+                      _favoritesExpanded
+                          ? l10n.favoritesCollapse
+                          : l10n.favoritesExpand,
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCardItem(WalletCard card) {
+    final isManualCard =
+        card.webServiceURL == null &&
+        card.authenticationToken == null &&
+        card.passTypeIdentifier == null;
+    final enableSwipe = !(card.isFavorite == true && !_favoritesExpanded);
+    return CardListItem(
+      card: card,
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => CardDetailScreen(
+              card: card,
+              onDelete: () => _deleteCard(card.id),
+              onUpdate: _updateCard,
+            ),
+          ),
+        ).then((_) {
+          if (mounted) {
+            setState(() {
+              _favoritesExpanded = false;
+            });
+          }
+        });
+      },
+      onToggleFavorite: () => _toggleFavorite(card),
+      onEdit: isManualCard ? () => _editCard(card) : null,
+      onDelete: () => _deleteCard(card.id),
+      enableSwipe: enableSwipe,
+      canEdit: isManualCard,
+    );
+  }
+
+  Future<void> _editCard(WalletCard card) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => AddCardScreen(initialCard: card)),
+    );
+    if (!mounted) return;
+    if (result != null && result is WalletCard) {
+      _updateCard(result);
+    }
+  }
+
+  Future<void> _toggleFavorite(WalletCard card) async {
+    final index = _cards.indexWhere((c) => c.id == card.id);
+    if (index == -1) return;
+    final updatedCard = card.copyWith(isFavorite: !(card.isFavorite == true));
+    final newCards = List<WalletCard>.from(_cards);
+    newCards[index] = updatedCard;
+    setState(() {
+      _cards = newCards;
+    });
+    await _storageService.saveCards(newCards);
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final favoritesCount = _cards.where((c) => c.isFavorite == true).length;
+    final showFavoritesToggle = !_showFavoritesOnly && favoritesCount > 1;
+    if (showFavoritesToggle) {
+      _schedulePinCheck();
+    } else if (_pinFavoritesToggle) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() {
+          _pinFavoritesToggle = false;
+        });
+      });
+    }
     return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar.large(
-            title: Text(
-              l10n.appTitle,
-              style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
-            ),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.settings_outlined),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          SettingsScreen(onDataChanged: _loadCards),
-                    ),
-                  );
-                },
-              ),
-            ],
-          ),
-          if (_isLoading)
-            const SliverFillRemaining(
-              child: Center(child: CircularProgressIndicator()),
-            )
-          else if (_cards.isEmpty)
-            SliverFillRemaining(
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.wallet_rounded,
-                      size: 80,
-                      color: Colors.grey[300],
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      l10n.homeWalletEmptyTitle,
-                      style: GoogleFonts.poppins(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey[400],
+      body: Stack(
+        children: [
+          NotificationListener<ScrollNotification>(
+            onNotification: (notification) {
+              _schedulePinCheck();
+              return false;
+            },
+            child: CustomScrollView(
+              controller: _scrollController,
+              slivers: [
+                SliverAppBar.large(
+                  backgroundColor: Theme.of(context).colorScheme.surface,
+                  surfaceTintColor: Theme.of(context).colorScheme.surface,
+                  scrolledUnderElevation: 2,
+                  title: Text(
+                    l10n.appTitle,
+                    style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+                  ),
+                  actions: [
+                    IconButton(
+                      icon: Icon(
+                        _showFavoritesOnly
+                            ? Icons.star_rounded
+                            : Icons.star_border_rounded,
+                        color: _showFavoritesOnly
+                            ? const Color(0xFFFFD54F)
+                            : null,
                       ),
+                      onPressed: () {
+                        setState(() {
+                          _showFavoritesOnly = !_showFavoritesOnly;
+                          _favoritesExpanded = _showFavoritesOnly;
+                        });
+                      },
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      l10n.homeWalletEmptySubtitle,
-                      style: TextStyle(color: Colors.grey[400]),
+                    IconButton(
+                      icon: const Icon(Icons.settings_outlined),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                SettingsScreen(onDataChanged: _loadCards),
+                          ),
+                        ).then((_) {
+                          if (mounted) {
+                            setState(() {
+                              _favoritesExpanded = false;
+                            });
+                          }
+                        });
+                      },
                     ),
                   ],
                 ),
-              ),
-            )
-          else
-            SliverPadding(
-              padding: const EdgeInsets.only(top: 10, bottom: 80),
-              sliver: SliverList(
-                delegate: SliverChildBuilderDelegate((context, index) {
-                  final card = _cards[index];
-                  return CardListItem(
-                    card: card,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => CardDetailScreen(
-                            card: card,
-                            onDelete: () => _deleteCard(card.id),
-                            onUpdate: _updateCard,
+                if (_isLoading)
+                  const SliverFillRemaining(
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else if (_cards.isEmpty)
+                  SliverFillRemaining(
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.wallet_rounded,
+                            size: 80,
+                            color: Colors.grey[300],
                           ),
-                        ),
-                      );
+                          const SizedBox(height: 16),
+                          Text(
+                            l10n.homeWalletEmptyTitle,
+                            style: GoogleFonts.poppins(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[400],
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            l10n.homeWalletEmptySubtitle,
+                            style: TextStyle(color: Colors.grey[400]),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  SliverPadding(
+                    padding: const EdgeInsets.only(top: 10, bottom: 80),
+                    sliver: SliverList(
+                      delegate: SliverChildListDelegate(_buildCardItems(l10n)),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          if (showFavoritesToggle && _pinFavoritesToggle)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 80,
+              child: SafeArea(
+                minimum: const EdgeInsets.only(bottom: 8),
+                child: Center(
+                  child: OutlinedButton(
+                    onPressed: () {
+                      setState(() {
+                        _favoritesExpanded = !_favoritesExpanded;
+                      });
                     },
-                  );
-                }, childCount: _cards.length),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.3),
+                        width: 1.5,
+                      ),
+                      foregroundColor: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 6,
+                      ),
+                      backgroundColor: Theme.of(
+                        context,
+                      ).colorScheme.surface.withValues(alpha: 0.12),
+                    ),
+                    child: Text(
+                      _favoritesExpanded
+                          ? l10n.favoritesCollapse
+                          : l10n.favoritesExpand,
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ),
+                ),
               ),
             ),
         ],

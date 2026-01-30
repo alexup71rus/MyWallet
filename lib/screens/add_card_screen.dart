@@ -208,7 +208,7 @@ class _AddCardScreenState extends State<AddCardScreen> {
                         Text(
                           _codeController.text.isEmpty
                               ? l10n.addCardCodePlaceholder
-                              : _codeController.text,
+                              : _formatDisplayCode(_codeController.text),
                           style: GoogleFonts.sourceCodePro(
                             color:
                                 (_selectedColor == const Color(0xFFF5F5F5)
@@ -248,6 +248,10 @@ class _AddCardScreenState extends State<AddCardScreen> {
 
               DropdownButtonFormField<String>(
                 initialValue: _selectedCardTypeKey,
+                isExpanded: true,
+                dropdownColor: Theme.of(
+                  context,
+                ).colorScheme.surfaceContainerHighest,
                 decoration: InputDecoration(
                   labelText: l10n.addCardTypeLabel,
                   prefixIcon: const Icon(Icons.label),
@@ -414,7 +418,7 @@ class _AddCardScreenState extends State<AddCardScreen> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  backgroundColor: const Color(0xFF3757BF),
                   foregroundColor: Colors.white,
                   elevation: 2,
                 ),
@@ -466,6 +470,17 @@ class _AddCardScreenState extends State<AddCardScreen> {
       }
     }
     return null;
+  }
+
+  String _formatDisplayCode(String code) {
+    final uri = Uri.tryParse(code);
+    if (uri != null && (uri.isScheme('http') || uri.isScheme('https'))) {
+      if (uri.host.isNotEmpty) {
+        return uri.host;
+      }
+      return '*** *** ***';
+    }
+    return code;
   }
 
   Future<void> _scanCode() async {
@@ -590,8 +605,17 @@ class _AddCardScreenState extends State<AddCardScreen> {
                 return;
               } else {
                 final l10n = AppLocalizations.of(context)!;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(l10n.addCardLinkNotPass)),
+                showDialog(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    content: Text(l10n.addCardLinkNotPass),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        child: Text(l10n.commonOk),
+                      ),
+                    ],
+                  ),
                 );
               }
             }
@@ -637,7 +661,7 @@ class _AddCardScreenState extends State<AddCardScreen> {
             DateTime.now().millisecondsSinceEpoch.toString() +
                 Random().nextInt(1000).toString(),
         code: _codeController.text,
-        displayCode: _codeController.text,
+        displayCode: _formatDisplayCode(_codeController.text),
         name: _nameController.text,
         colorValue: _selectedColor.toARGB32(),
         iconPoint: _selectedIcon.codePoint,

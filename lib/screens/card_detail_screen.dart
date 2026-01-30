@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mywallet/l10n/app_localizations.dart';
 import '../models/wallet_card.dart';
 import '../services/pkpass_service.dart';
+import 'add_card_screen.dart';
 
 class CardDetailScreen extends StatefulWidget {
   final WalletCard card;
@@ -124,6 +125,11 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
         _card.displayCode ??
         (_card.code.startsWith('http') ? l10n.qrCodeLabel : _card.code);
 
+    final isManualCard =
+        _card.webServiceURL == null &&
+        _card.authenticationToken == null &&
+        _card.passTypeIdentifier == null;
+
     return Scaffold(
       backgroundColor: backgroundColor,
       appBar: AppBar(
@@ -133,6 +139,23 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
             : SystemUiOverlayStyle.dark,
         iconTheme: IconThemeData(color: isDark ? Colors.white : Colors.black),
         actions: [
+          if (isManualCard)
+            IconButton(
+              icon: const Icon(Icons.edit),
+              onPressed: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => AddCardScreen(initialCard: _card),
+                  ),
+                );
+                if (!mounted) return;
+                if (result != null && result is WalletCard) {
+                  setState(() => _card = result);
+                  widget.onUpdate(result);
+                }
+              },
+            ),
           IconButton(
             icon: const Icon(Icons.delete_outline),
             onPressed: () {
@@ -205,7 +228,8 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                if (_card.iconPath != null)
+                                if (_card.iconPath != null &&
+                                    File(_card.iconPath!).existsSync())
                                   ClipRRect(
                                     borderRadius: BorderRadius.circular(8),
                                     child: Image.file(
@@ -227,14 +251,18 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                                     size: 28,
                                   ),
                                 const SizedBox(width: 12),
-                                Text(
-                                  _card.name,
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black87,
+                                Flexible(
+                                  child: Text(
+                                    _card.name,
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black87,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
-                                  textAlign: TextAlign.center,
                                 ),
                               ],
                             ),

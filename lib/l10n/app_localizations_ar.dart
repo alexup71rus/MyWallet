@@ -227,7 +227,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get addCardLinkNotPass =>
-      'لم تُرجِع الرابط ملف تمرير صالحًا. سيتم استخدامه كرمز.';
+      'تعذر جلب بيانات البطاقة من هذا الرابط. أدخلها يدويًا — تم حفظ الرابط وسيعمل عند الدفع.';
 
   @override
   String addCardFailedFetch(Object status) {
@@ -238,6 +238,27 @@ class AppLocalizationsAr extends AppLocalizations {
   String addCardDownloadError(Object error) {
     return 'خطأ في التنزيل: $error';
   }
+
+  @override
+  String get commonOk => 'حسنًا';
+
+  @override
+  String get favoritesExpand => 'توسيع المفضلة';
+
+  @override
+  String get favoritesCollapse => 'طي المفضلة';
+
+  @override
+  String get settingsDevToolsSection => 'أدوات المطور';
+
+  @override
+  String get settingsDemoCardsGenerate => 'إنشاء بطاقات تجريبية';
+
+  @override
+  String get settingsDemoCardsRemove => 'حذف البطاقات التجريبية';
+
+  @override
+  String get settingsDemoCardsCountLabel => 'عدد البطاقات التجريبية';
 
   @override
   String get scannerTitle => 'مسح رمز QR';

@@ -504,7 +504,7 @@ abstract class AppLocalizations {
   /// No description provided for @addCardLinkNotPass.
   ///
   /// In en, this message translates to:
-  /// **'Link did not return a valid pass file. Using as code.'**
+  /// **'Couldn\'t fetch card data from this link. Fill in manually — the link is saved and will work at checkout.'**
   String get addCardLinkNotPass;
 
   /// No description provided for @addCardFailedFetch.
@@ -518,6 +518,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Error downloading: {error}'**
   String addCardDownloadError(Object error);
+
+  /// No description provided for @commonOk.
+  ///
+  /// In en, this message translates to:
+  /// **'OK'**
+  String get commonOk;
+
+  /// No description provided for @favoritesExpand.
+  ///
+  /// In en, this message translates to:
+  /// **'Expand favorites'**
+  String get favoritesExpand;
+
+  /// No description provided for @favoritesCollapse.
+  ///
+  /// In en, this message translates to:
+  /// **'Collapse favorites'**
+  String get favoritesCollapse;
+
+  /// No description provided for @settingsDevToolsSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Developer Tools'**
+  String get settingsDevToolsSection;
+
+  /// No description provided for @settingsDemoCardsGenerate.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate demo cards'**
+  String get settingsDemoCardsGenerate;
+
+  /// No description provided for @settingsDemoCardsRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove demo cards'**
+  String get settingsDemoCardsRemove;
+
+  /// No description provided for @settingsDemoCardsCountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Demo cards count'**
+  String get settingsDemoCardsCountLabel;
 
   /// No description provided for @scannerTitle.
   ///

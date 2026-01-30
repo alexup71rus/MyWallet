@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -35,6 +36,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _maxBrightness = true;
   bool _proximitySortingEnabled = false;
   String? _appVersion;
+  int _demoCardsCount = 20;
 
   @override
   void initState() {
@@ -74,7 +76,57 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _maxBrightness = prefs.getBool('max_brightness') ?? true;
       _proximitySortingEnabled =
           prefs.getBool('proximity_sorting_enabled') ?? false;
+      _demoCardsCount = prefs.getInt('demo_cards_count') ?? 20;
     });
+  }
+
+  Future<void> _updateDemoCount(int value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('demo_cards_count', value);
+    setState(() {
+      _demoCardsCount = value;
+    });
+  }
+
+  Future<void> _generateDemoCards() async {
+    if (!kDebugMode) return;
+    final count = _demoCardsCount.clamp(1, 200);
+    final cards = await _storageService.loadCards();
+    final cleaned = cards.where((c) => !c.isDemo).toList();
+    final now = DateTime.now();
+
+    final demoCards = List.generate(count, (index) {
+      final id = 'demo_${now.millisecondsSinceEpoch}_$index';
+      final color = Colors.primaries[index % Colors.primaries.length];
+      return WalletCard(
+        id: id,
+        code: '0000 0000 0000 ${index + 1}',
+        displayCode: 'demo-${index + 1}',
+        name: 'Demo Card ${index + 1}',
+        colorValue: color.value,
+        iconPoint: Icons.store.codePoint,
+        dateAdded: now.subtract(Duration(minutes: index)),
+        cardType: 'Loyalty Card',
+        pointsLabel: 'Points',
+        pointsValue: '${(index + 1) * 10}',
+        format: 'qrCode',
+        isDemo: true,
+      );
+    });
+
+    final newCards = [...demoCards, ...cleaned];
+    await _storageService.saveCards(newCards);
+    widget.onDataChanged();
+    _showSnackBar('Demo cards generated');
+  }
+
+  Future<void> _removeDemoCards() async {
+    if (!kDebugMode) return;
+    final cards = await _storageService.loadCards();
+    final newCards = cards.where((c) => !c.isDemo).toList();
+    await _storageService.saveCards(newCards);
+    widget.onDataChanged();
+    _showSnackBar('Demo cards removed');
   }
 
   Future<void> _toggleBrightness(bool value) async {
@@ -431,6 +483,47 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   title: Text(l10n.settingsVersion),
                   trailing: Text(_appVersion ?? '—'),
                 ),
+                if (kDebugMode) ...[
+                  const Divider(),
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Text(
+                      l10n.settingsDevToolsSection,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.tune),
+                    title: Text(l10n.settingsDemoCardsCountLabel),
+                    trailing: SizedBox(
+                      width: 72,
+                      child: TextField(
+                        keyboardType: TextInputType.number,
+                        textAlign: TextAlign.end,
+                        controller: TextEditingController(
+                          text: _demoCardsCount.toString(),
+                        ),
+                        onSubmitted: (value) {
+                          final parsed = int.tryParse(value) ?? 20;
+                          _updateDemoCount(parsed);
+                        },
+                      ),
+                    ),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.playlist_add),
+                    title: Text(l10n.settingsDemoCardsGenerate),
+                    onTap: _generateDemoCards,
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.delete_outline),
+                    title: Text(l10n.settingsDemoCardsRemove),
+                    onTap: _removeDemoCards,
+                  ),
+                ],
               ],
             ),
     );

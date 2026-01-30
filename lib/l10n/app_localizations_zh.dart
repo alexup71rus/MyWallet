@@ -223,7 +223,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get addCardSave => '保存卡片';
 
   @override
-  String get addCardLinkNotPass => '链接未返回有效票据文件，已作为代码使用。';
+  String get addCardLinkNotPass => '无法从该链接获取卡片信息。请手动填写——链接已保存，收银台可用。';
 
   @override
   String addCardFailedFetch(Object status) {
@@ -234,6 +234,27 @@ class AppLocalizationsZh extends AppLocalizations {
   String addCardDownloadError(Object error) {
     return '下载错误：$error';
   }
+
+  @override
+  String get commonOk => '确定';
+
+  @override
+  String get favoritesExpand => '展开收藏';
+
+  @override
+  String get favoritesCollapse => '收起收藏';
+
+  @override
+  String get settingsDevToolsSection => '开发者工具';
+
+  @override
+  String get settingsDemoCardsGenerate => '生成演示卡片';
+
+  @override
+  String get settingsDemoCardsRemove => '删除演示卡片';
+
+  @override
+  String get settingsDemoCardsCountLabel => '演示卡片数量';
 
   @override
   String get scannerTitle => '扫描二维码';
@@ -505,7 +526,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get addCardSave => '保存卡片';
 
   @override
-  String get addCardLinkNotPass => '链接未返回有效票据文件，已作为代码使用。';
+  String get addCardLinkNotPass => '无法从该链接获取卡片信息。请手动填写——链接已保存，收银台可用。';
 
   @override
   String addCardFailedFetch(Object status) {
@@ -516,6 +537,27 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String addCardDownloadError(Object error) {
     return '下载错误：$error';
   }
+
+  @override
+  String get commonOk => '确定';
+
+  @override
+  String get favoritesExpand => '展开收藏';
+
+  @override
+  String get favoritesCollapse => '收起收藏';
+
+  @override
+  String get settingsDevToolsSection => '开发者工具';
+
+  @override
+  String get settingsDemoCardsGenerate => '生成演示卡片';
+
+  @override
+  String get settingsDemoCardsRemove => '删除演示卡片';
+
+  @override
+  String get settingsDemoCardsCountLabel => '演示卡片数量';
 
   @override
   String get scannerTitle => '扫描二维码';
