@@ -16,44 +16,11 @@ A Flutter loyalty card wallet that supports Apple Wallet (`.pkpass`) files.
 2. Run `flutter pub get`.
 3. Connect your device and run `flutter run`.
 
-## Firebase Setup
-
-This project uses Firebase for authentication and cloud features.
-
-### First-time setup:
-
-1. Install FlutterFire CLI:
-   ```bash
-   dart pub global activate flutterfire_cli
-   ```
-
-2. Login to Firebase:
-   ```bash
-   firebase login
-   ```
-
-3. Generate Firebase configuration files:
-   ```bash
-   flutterfire configure --project=mywallet-e9b75
-   ```
-   
-   This will automatically create:
-   - `lib/firebase_options.dart` (Flutter SDK config)
-   - `android/app/google-services.json` (Android SDK config)
-   - `ios/Runner/GoogleService-Info.plist` (iOS SDK config)
-   - `macos/Runner/GoogleService-Info.plist` (macOS SDK config)
-
-These files contain your Firebase API keys and are already listed in `.gitignore`.
-
 ## Screenshots
 
 <p align="center">
-  <img src="screenshots/5431515745784368157_121.jpg" alt="Screenshot 1" width="300">
-  <img src="screenshots/5431515745784368158_121.jpg" alt="Screenshot 2" width="300">
-  <img src="screenshots/5431515745784368159_121.jpg" alt="Screenshot 3" width="300">
-  <img src="screenshots/5431515745784368160_121.jpg" alt="Screenshot 4" width="300">
+  <img src="screenshots/5469629925519199825_121.jpg" width="200" />
+  <img src="screenshots/5469629925519199826_121.jpg" width="200" />
+  <img src="screenshots/5469629925519199829_121.jpg" width="200" />
+  <img src="screenshots/5469629925519199835_121.jpg" width="200" />
 </p>
-
-## GitHub Pages
-
-Check out the [landing page](https://alexup71rus.github.io/MyWallet/) for more details.
